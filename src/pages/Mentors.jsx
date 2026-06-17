@@ -63,11 +63,11 @@ const mentordata =MENTORS()
           <span className="eyebrow"><span className="dot" /> Verified 1:1 Mentors</span>
           <h1 style={{ marginTop: 16 }}>Book a real conversation with someone who's <span className="grad-text">been there</span></h1>
           <p className="ph-sub">Talk to college seniors, alumni and working professionals — about admissions, campus life, placements, career growth or interview prep. You pick the person and the price.</p>
-          <div className="ph-stats">
+          {/* <div className="ph-stats">
             <div className="s"><div className="v">12,000+</div><div className="l">Verified Mentors</div></div>
             <div className="s"><div className="v">85,000+</div><div className="l">Sessions Booked</div></div>
             <div className="s"><div className="v">4.9/5</div><div className="l">Average Rating</div></div>
-          </div>
+          </div> */}
         </div>
       </section>
 

@@ -215,7 +215,7 @@ export default function Navbar() {
 
           {/* right section */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ThemeSwitcher />
+            {/* <ThemeSwitcher /> */}
 
 
             {/* user dropdown */}
@@ -253,7 +253,7 @@ export default function Navbar() {
           </nav>
 
           <div className="nav-right">
-            <ThemeSwitcher />
+            {/* <ThemeSwitcher /> */}
             {user ? (
               <>
                 <Link to={dashboardPath} className="nav-user-info">

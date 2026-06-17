@@ -7,12 +7,109 @@ import JourneyRail from '../components/JourneyRail.jsx';
 import httpService from '../utils/apiService.tsx'
 import { Logo, ArrowRight, Search, Cap, Person, Doc, Brief, Webinar, Check } from '../components/Icons.jsx';
 
+const HOW_IT_WORKS_STEPS = [
+  {
+    num: '01',
+    title: 'Create Your Profile',
+    desc: 'Sign up and fill in your expertise, education, experience, and set your hourly availability. It only takes a few minutes.',
+    color: 'var(--indigo)',
+    bg: 'linear-gradient(135deg,#EEF0FF,#E9F1FF)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="28" height="28" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    ),
+  },
+  {
+    num: '02',
+    title: 'Get Discovered',
+    desc: 'Students find you through search filters, AI matching, and personalised recommendations based on their goals and exam.',
+    color: 'var(--emerald)',
+    bg: 'linear-gradient(135deg,#E7F7EF,#D9F4E8)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="28" height="28" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    ),
+  },
+  {
+    num: '03',
+    title: 'Conduct Sessions',
+    desc: 'Accept bookings and run 1-on-1 video or chat sessions on your own schedule. You stay in full control of your calendar.',
+    color: 'var(--amber)',
+    bg: 'linear-gradient(135deg,#FEF3DA,#FEF0C7)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="28" height="28" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/>
+      </svg>
+    ),
+  },
+  {
+    num: '04',
+    title: 'Earn & Make Impact',
+    desc: 'Get paid securely for every session, build your reputation with student reviews, and watch your mentees succeed.',
+    color: 'var(--violet)',
+    bg: 'linear-gradient(135deg,#F0EEFF,#EAE4FF)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="28" height="28" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l2.5 5 5.5.8-4 3.9 1 5.5L12 16l-5 2.6 1-5.5-4-3.9 5.5-.8L12 2z"/>
+      </svg>
+    ),
+  },
+];
+
+function HowItWorksModal({ onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div className="hiw-modal-overlay" onClick={onClose}>
+      <div className="hiw-modal-dialog" role="dialog" aria-modal="true" aria-label="How Mentorship Works" onClick={(e) => e.stopPropagation()}>
+        <button className="hiw-close" onClick={onClose} aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <div className="hiw-header">
+          <span className="eyebrow"><span className="dot" /> Step-by-step</span>
+          <h2 className="hiw-title">How Mentorship Works</h2>
+          <p className="hiw-sub">From sign-up to your first session — here's exactly what happens.</p>
+        </div>
+        <div className="hiw-steps">
+          {HOW_IT_WORKS_STEPS.map((step) => (
+            <div className="hiw-step" key={step.num}>
+              <div className="hiw-step-icon" style={{ background: step.bg, color: step.color }}>
+                {step.icon}
+              </div>
+              <div className="hiw-step-body">
+                <span className="hiw-step-num" style={{ color: step.color }}>{step.num}</span>
+                <h3 className="hiw-step-title">{step.title}</h3>
+                <p className="hiw-step-desc">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hiw-footer">
+          <p>Ready to start mentoring?</p>
+          <button className="btn btn-primary btn-lg" onClick={onClose}>Got it — let's go!</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const EXAMS = ['JEE', 'NEET', 'MHT-CET', 'CAT / MBA', 'CUET'];
 // const FEATURED = ['Priya Nair', 'Siddharth Iyer', 'Aarav Sharma', 'Rohit Deshmukh'];
 
 export default function Home() {
   const { openAuth } = useAuth();
   const [exam, setExam] = useState('JEE');
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
  const mentor = MENTORS();
 
 // console.log(mentor)
@@ -62,8 +159,9 @@ const featured = mentor?.slice(0, 6) || []
                   <span style={{ background: 'linear-gradient(135deg,#06B6D4,#3B82F6)' }}>K</span>
                 </div>
                 <div>
-                  <div className="stars">★★★★★ <b style={{ color: 'var(--ink)', fontSize: 14 }}>4.9/5</b></div>
-                  <small>Trusted by 1,20,000+ students across India</small>
+                  <small>Guidance & Feedback</small>
+                  {/* <div className="stars">★★★★★ <b style={{ color: 'var(--ink)', fontSize: 14 }}>4.9/5</b></div>
+                  <small>Trusted by 1,20,000+ students across India</small> */}
                 </div>
               </div>
             </div>
@@ -159,6 +257,51 @@ const featured = mentor?.slice(0, 6) || []
           </div>
         </section>
 
+        {/* BECOME A MENTOR */}
+        <section className="section-pad mentor-cta-section" id="become-mentor">
+          <div className="wrap">
+            <div className="mentor-cta-grid reveal">
+              <div className="mentor-cta-copy">
+                <span className="eyebrow"><span className="dot" /> For Experts &amp; Alumni</span>
+                <h2 className="section-title" style={{ marginTop: 16 }}>Share your knowledge.<br /><span className="grad-text">Earn on your terms.</span></h2>
+                <p className="section-sub" style={{ marginTop: 14 }}>Join 12,000+ verified mentors helping students navigate college admissions, career choices, and exam prep — on a schedule that works for you.</p>
+                <ul className="mentor-cta-perks">
+                  <li><span className="perk-dot" style={{ background: 'var(--emerald)' }} /><span>Set your own availability &amp; hourly rate</span></li>
+                  <li><span className="perk-dot" style={{ background: 'var(--indigo)' }} /><span>1-on-1 video or chat sessions</span></li>
+                  <li><span className="perk-dot" style={{ background: 'var(--amber)' }} /><span>Secure &amp; timely payouts every session</span></li>
+                  <li><span className="perk-dot" style={{ background: 'var(--violet)' }} /><span>Build your reputation with student reviews</span></li>
+                </ul>
+                <div className="mentor-cta-btns">
+                  <button className="btn btn-primary btn-lg" onClick={() => openAuth('signup')}>
+                    Become a Mentor <ArrowRight width="20" height="20" />
+                  </button>
+                  <button className="btn btn-ghost btn-lg" onClick={() => setShowHowItWorks(true)}>
+                    How it Works
+                  </button>
+                </div>
+              </div>
+              <div className="mentor-cta-stats">
+                <div className="mcs-card reveal">
+                  <div className="mcs-num grad-text">12,000+</div>
+                  <div className="mcs-label">Active Mentors</div>
+                </div>
+                <div className="mcs-card reveal">
+                  <div className="mcs-num grad-text">1.2L+</div>
+                  <div className="mcs-label">Students Guided</div>
+                </div>
+                <div className="mcs-card reveal">
+                  <div className="mcs-num grad-text">4.9★</div>
+                  <div className="mcs-label">Average Rating</div>
+                </div>
+                <div className="mcs-card reveal">
+                  <div className="mcs-num grad-text">₹800–₹5k</div>
+                  <div className="mcs-label">Earning per Hour</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* TESTIMONIALS */}
         <section className="section-pad" id="stories">
           <div className="wrap">
@@ -197,6 +340,8 @@ const featured = mentor?.slice(0, 6) || []
           </div>
         </section>
       </main>
+
+      {showHowItWorks && <HowItWorksModal onClose={() => setShowHowItWorks(false)} />}
     </>
   );
 }
