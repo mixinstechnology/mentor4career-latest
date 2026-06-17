@@ -16,7 +16,6 @@ export default function MentorCard({ mentor, colorIndex = 0 }) {
       role:  `${mentor.role} · ${mentor.org}`,
       price: mentor.price,
     });
-
   return (
     <div className="card card-hover mentor-card">
       <span className="verified"><Check width="14" height="14" /> Verified</span>

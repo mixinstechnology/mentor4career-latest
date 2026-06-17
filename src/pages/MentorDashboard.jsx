@@ -323,7 +323,7 @@ function FormSection({ title, cols = 2, children }) {
       }}>
         {title}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: cols === 1 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
         {children}
       </div>
     </div>
@@ -545,7 +545,7 @@ function StarPicker({ label, value, onChange }) {
   );
 }
 
-const EMPTY_REVIEW = { rating: 0, mentorFeedback: '' };
+const EMPTY_REVIEW = { mentorFeedback: '' };
 
 function SessionList({ authUserId }) {
   const [filter,      setFilter]      = useState('all');
@@ -620,17 +620,13 @@ function SessionList({ authUserId }) {
 
   /* submit review */
   const handleSubmitReview = async () => {
-    if (!reviewSess || reviewForm.rating === 0) {
-      toast.error('Please give a rating before submitting.');
-      return;
-    }
+    if (!reviewSess) return;
     setSubmitting(true);
     try {
       await httpService.put(`/mentorSession/${reviewSess.id}/feedback`, {
         data: {
           role:           'mentor',
-          mentorFeedback: reviewForm.mentorFeedback,
-          rating:         reviewForm.rating,
+          feedback: reviewForm.mentorFeedback,
         },
         token: true,
       });
@@ -825,7 +821,7 @@ function SessionList({ authUserId }) {
                   style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box', outline: 'none' }}
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.04em' }}>From Time</label>
                   <input
@@ -878,14 +874,14 @@ function SessionList({ authUserId }) {
         </div>
       )}
 
-      {/* ── Review modal ── */}
+      {/* ── Feedback modal ── */}
       {reviewSess && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', padding: 16 }}
           onClick={e => { if (e.target === e.currentTarget) setReviewSess(null); }}>
           <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}>
             {/* modal header */}
             <div style={{ background: 'var(--grad)', padding: '22px 24px 18px', color: '#fff', flexShrink: 0 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, marginBottom: 4 }}>Rate this session</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, marginBottom: 4 }}>Session Feedback</div>
               <div style={{ fontSize: 13, opacity: 0.85 }}>
                 with {reviewSess.userName || reviewSess.studentName || reviewSess.name || 'Student'} &nbsp;·&nbsp; {reviewSess.description}
               </div>
@@ -896,30 +892,22 @@ function SessionList({ authUserId }) {
             </div>
 
             {/* modal body */}
-            <div style={{ padding: '6px 24px 24px', overflowY: 'auto', flex: 1 }}>
-              <StarPicker
-                label="Session Rating"
-                value={reviewForm.rating}
-                onChange={v => setReviewForm(f => ({ ...f, rating: v }))}
+            <div style={{ padding: '20px 24px 24px', overflowY: 'auto', flex: 1 }}>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                Feedback <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+              </label>
+              <textarea
+                value={reviewForm.mentorFeedback}
+                onChange={e => setReviewForm(f => ({ ...f, mentorFeedback: e.target.value }))}
+                placeholder="Share your experience with this student — e.g. engagement, preparation, follow-through…"
+                rows={5}
+                style={{ width: '100%', resize: 'vertical', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, boxSizing: 'border-box', outline: 'none' }}
               />
-
-              <div style={{ marginTop: 18 }}>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                  Feedback <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
-                </label>
-                <textarea
-                  value={reviewForm.mentorFeedback}
-                  onChange={e => setReviewForm(f => ({ ...f, mentorFeedback: e.target.value }))}
-                  placeholder="Share your experience with this student — e.g. engagement, preparation, follow-through…"
-                  rows={4}
-                  style={{ width: '100%', resize: 'vertical', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, boxSizing: 'border-box', outline: 'none' }}
-                />
-              </div>
 
               <button
                 onClick={handleSubmitReview}
-                disabled={submitting || reviewForm.rating === 0}
-                style={{ marginTop: 16, width: '100%', padding: '13px 0', background: submitting || reviewForm.rating === 0 ? '#C7D2FE' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 12, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, cursor: submitting || reviewForm.rating === 0 ? 'not-allowed' : 'pointer', boxShadow: reviewForm.rating > 0 && !submitting ? 'var(--shadow-brand)' : 'none', transition: 'all .2s' }}>
+                disabled={submitting}
+                style={{ marginTop: 16, width: '100%', padding: '13px 0', background: submitting ? '#C7D2FE' : 'var(--grad)', color: '#fff', border: 'none', borderRadius: 12, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: !submitting ? 'var(--shadow-brand)' : 'none', transition: 'all .2s' }}>
                 {submitting ? 'Submitting…' : 'Submit Feedback'}
               </button>
               <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-3)', marginTop: 10 }}>
@@ -1104,7 +1092,7 @@ function SetAvailability() {
                     {validToOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
-                <button className="btn btn-primary btn-sm" onClick={addSlot} style={{ alignSelf: 'flex-end' }}>+ Add slot</button>
+                <button className="btn btn-primary btn-sm avail-add-btn" onClick={addSlot}>+ Add slot</button>
               </div>
               {rangeErr && <div className="avail-range-err">{rangeErr}</div>}
               {selSlots.length > 0 ? (
@@ -1291,7 +1279,7 @@ function MentorWebinars({ userId }) {
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
           <button
             className="btn btn-ghost btn-sm"
             disabled={page <= 1 || loading}
@@ -1481,9 +1469,9 @@ export default function MentorDashboard() {
         subtitle="Mentor Dashboard"
         title="Your mentoring hub"
         kpis={[
-          { v: sessionCount > 0 ? sessionCount : '—', l: 'Sessions booked'  },
-          { v: sessionsDone > 0 ? sessionsDone : '—', l: 'Sessions done'    },
-          { v: availCount   > 0 ? availCount   : '—', l: 'Available dates'  },
+          { v: sessionCount > 0 ? sessionCount : '0', l: 'Sessions booked'  },
+          { v: sessionsDone > 0 ? sessionsDone : '0', l: 'Sessions done'    },
+          { v: availCount   > 0 ? availCount   : '0', l: 'Available dates'  },
           { v: myProfile ? `${calcCompletion(myProfile)}%` : '…', l: 'Profile complete' },
         ]}
         navItems={NAV.map(item => {
