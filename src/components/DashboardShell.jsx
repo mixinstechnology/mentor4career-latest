@@ -29,12 +29,10 @@ function KpiCard({ k, index }) {
         cursor: 'default',
       }}
     >
-      {/* left accent stripe */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
         background: accent, borderRadius: '16px 0 0 16px',
       }} />
-      {/* background tint blob */}
       <div style={{
         position: 'absolute', right: -20, top: -20, width: 80, height: 80,
         borderRadius: '50%', background: bg, pointerEvents: 'none',
@@ -61,6 +59,17 @@ export default function DashboardShell({
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const hasNav = navItems.length > 0;
+
+  const [sideOpen,      setSideOpen]      = React.useState(false);
+  const [sideCollapsed, setSideCollapsed] = React.useState(false);
+
+  const handleBurger = () => {
+    if (window.innerWidth > 980) {
+      setSideCollapsed(v => !v);
+    } else {
+      setSideOpen(v => !v);
+    }
+  };
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -93,117 +102,75 @@ export default function DashboardShell({
     </p>
   );
 
-  return (
-    <main id="top">
-      {/* ── Professional Dashboard Header ── */}
-      <section style={{
-        background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 40%, #7C3AED 75%, #0FA968 100%)',
-        padding: '26px 0 30px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* decorative blobs */}
-        <div style={{ position: 'absolute', top: -60, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -80, left: '35%', width: 320, height: 320, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 10, left: '60%', width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
-
-        <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
-            {/* left: greeting + title */}
-            <div>
-              {user && (
-                <div style={{
-                  color: 'rgba(255,255,255,0.72)', fontSize: 13.5, fontWeight: 500,
-                  marginBottom: 6, display: 'flex', alignItems: 'center', gap: 7,
-                }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#86efac', display: 'inline-block', flexShrink: 0 }} />
-                  {greeting()}, {user.name || roleLabel}
-                </div>
-              )}
-              {!user && subtitle && (
-                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13.5, fontWeight: 500, marginBottom: 6 }}>
-                  {subtitle}
-                </div>
-              )}
-              <h1 style={{
-                color: '#fff', margin: 0, fontSize: 'clamp(22px,4vw,30px)',
-                fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.15,
+  const heroBanner = (
+    <section style={{
+      background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 40%, #7C3AED 75%, #0FA968 100%)',
+      padding: '26px clamp(20px,3vw,38px) 30px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', top: -60, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -80, left: '35%', width: 320, height: 320, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 10, left: '60%', width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+          <div>
+            {user && (
+              <div style={{
+                color: 'rgba(255,255,255,0.72)', fontSize: 13.5, fontWeight: 500,
+                marginBottom: 6, display: 'flex', alignItems: 'center', gap: 7,
               }}>
-                {title}
-              </h1>
-            </div>
-
-            {/* right: date + role badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#86efac', display: 'inline-block', flexShrink: 0 }} />
+                {greeting()}, {user.name || roleLabel}
+              </div>
+            )}
+            {!user && subtitle && (
+              <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13.5, fontWeight: 500, marginBottom: 6 }}>
+                {subtitle}
+              </div>
+            )}
+            <h1 style={{
+              color: '#fff', margin: 0, fontSize: 'clamp(22px,4vw,30px)',
+              fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.15,
+            }}>
+              {title}
+            </h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{
+              background: 'rgba(255,255,255,0.14)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              padding: '5px 14px', borderRadius: 20,
+              color: 'rgba(255,255,255,0.9)', fontSize: 12.5, fontWeight: 500,
+              letterSpacing: '0.01em',
+            }}>
+              {dateStr}
+            </span>
+            {user && (
               <span style={{
-                background: 'rgba(255,255,255,0.14)',
+                background: 'rgba(255,255,255,0.18)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                padding: '5px 14px', borderRadius: 20,
-                color: 'rgba(255,255,255,0.9)', fontSize: 12.5, fontWeight: 500,
-                letterSpacing: '0.01em',
+                border: '1px solid rgba(255,255,255,0.28)',
+                padding: '5px 16px', borderRadius: 20,
+                color: '#fff', fontSize: 12.5, fontWeight: 700,
+                letterSpacing: '0.02em',
               }}>
-                {dateStr}
+                {roleLabel}
               </span>
-              {user && (
-                <span style={{
-                  background: 'rgba(255,255,255,0.18)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.28)',
-                  padding: '5px 16px', borderRadius: 20,
-                  color: '#fff', fontSize: 12.5, fontWeight: 700,
-                  letterSpacing: '0.02em',
-                }}>
-                  {roleLabel}
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
 
-      {hasNav ? (
-        <div className="db-layout">
-          <aside className="db-sidebar">
-            <nav className="db-nav" aria-label="Dashboard navigation">
-              {navItems.map((item, i) =>
-                item.divider ? (
-                  <div key={`div-${i}`} className="db-nav-divider" />
-                ) : (
-                  <button
-                    key={item.id}
-                    className={`db-nav-item${activeSection === item.id ? ' active' : ''}`}
-                    onClick={() => onSectionChange?.(item.id)}
-                  >
-                    {item.icon}
-                    {item.label}
-                    {(item.count ?? 0) > 0 && (
-                      <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px', borderRadius: 99, background: '#4F46E5', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {item.count}
-                      </span>
-                    )}
-                  </button>
-                )
-              )}
-            </nav>
-            <div className="db-sidebar-footer">
-              <button className="btn btn-ghost btn-sm db-logout-btn" onClick={() => { signOut(); navigate('/'); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Sign out
-              </button>
-            </div>
-          </aside>
-          <div className="db-main">
-            {activeSection === 'overview' && kpiBar}
-            {children}
-            {demoNote}
-          </div>
-        </div>
-      ) : (
+  if (!hasNav) {
+    return (
+      <main id="top">
+        {heroBanner}
         <section className="section-pad" style={{ paddingTop: 24 }}>
           <div className="wrap">
             {kpiBar}
@@ -211,7 +178,102 @@ export default function DashboardShell({
             {demoNote}
           </div>
         </section>
-      )}
+      </main>
+    );
+  }
+
+  return (
+    <main id="top">
+      <div className={`dash${sideCollapsed ? ' side-collapsed' : ''}`}>
+
+        {/* ═══ SIDEBAR ═══ */}
+        <aside className={`dash-side${sideOpen ? ' open' : ''}`}>
+          <a href="/" className="brand" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <span style={{ display: 'flex', color: 'var(--indigo,#4F46E5)' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3L3 8l9 5 9-5-9-5z" fill="currentColor"/>
+                <path d="M6 11v4.5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5V11" stroke="currentColor" strokeWidth="1.7" fill="none"/>
+              </svg>
+            </span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
+              Mentor<b style={{ color: 'var(--indigo,#4F46E5)' }}>4</b>Career
+            </span>
+          </a>
+
+          {navItems.map((item, i) => {
+            if (item.divider) {
+              return item.label
+                ? <div key={`sec-${i}`} className="ds-sec">{item.label}</div>
+                : <div key={`div-${i}`} style={{ height: 1, background: 'var(--border,#e2e8f0)', margin: '8px 12px' }} />;
+            }
+            return (
+              <button
+                key={item.id}
+                className={`ds-link${activeSection === item.id ? ' active' : ''}`}
+                onClick={() => { onSectionChange?.(item.id); setSideOpen(false); }}
+                title={item.label}
+              >
+                {item.icon}
+                <span className="ds-label">{item.label}</span>
+                {(item.count ?? 0) > 0 && <span className="ds-count">{item.count}</span>}
+              </button>
+            );
+          })}
+
+          <div className="ds-foot">
+            <button
+              className="ds-link"
+              onClick={() => { signOut(); navigate('/'); }}
+              title="Sign out"
+            >
+              <svg viewBox="0 0 24 24" fill="none" width="19" height="19">
+                <path d="M14 4h4a2 2 0 012 2v12a2 2 0 01-2 2h-4M9 16l-4-4 4-4M5 12h11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="ds-label">Sign out</span>
+            </button>
+          </div>
+        </aside>
+
+        {sideOpen && <div className="scrim open" onClick={() => setSideOpen(false)} />}
+
+        {/* ═══ MAIN ═══ */}
+        <div className="dash-main">
+          <header className="dash-top">
+            <button className="dt-burger" onClick={handleBurger} title="Toggle sidebar">
+              {sideOpen
+                ? <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                : sideCollapsed
+                ? <svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                : <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              }
+            </button>
+            <div>
+              <h1 style={{ fontSize: 20, letterSpacing: '-0.02em', margin: 0 }}>{title}</h1>
+              {subtitle && <div className="dt-sub">{subtitle}</div>}
+            </div>
+            <div className="dt-right">
+              <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500, whiteSpace: 'nowrap' }}
+                className="db-topbar-title">
+                {dateStr}
+              </span>
+              {user && (
+                <span className="badge b-indigo" style={{ padding: '6px 12px', fontSize: 12 }}>
+                  {roleLabel}
+                </span>
+              )}
+            </div>
+          </header>
+
+          {heroBanner}
+
+          <div style={{ padding: 'clamp(18px,3vw,32px)' }}>
+            {activeSection === 'overview' && kpiBar}
+            {children}
+            {demoNote}
+          </div>
+        </div>
+
+      </div>
     </main>
   );
 }

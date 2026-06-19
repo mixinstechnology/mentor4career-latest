@@ -770,7 +770,7 @@ function SessionCard({ s, onReview }) {
           ) : (
             onReview && (
               <button className="btn btn-primary btn-sm" onClick={() => onReview(s)}>
-                Leave Review
+                Leave Rating
               </button>
             )
           )
@@ -788,7 +788,7 @@ function SessionList() {
   const [sessions,   setSessions]   = useState([]);
   const [loading,    setLoading]    = useState(false);
   const [reviewSess, setReviewSess] = useState(null);
-  const [reviewForm, setReviewForm] = useState({ rating: 0, userFeedback: '' });
+  const [reviewForm, setReviewForm] = useState({ rating: 0, behaviorRating: 0, communicationRating: 0, platformRating: 0, userFeedback: '' });
   const [submitting, setSubmitting] = useState(false);
 
   const sentinelRef = useRef(null);
@@ -841,7 +841,7 @@ function SessionList() {
 
   const handleReview = (s) => {
     setReviewSess(s);
-    setReviewForm({ rating: 0, userFeedback: '' });
+    setReviewForm({ rating: 0, behaviorRating: 0, communicationRating: 0, platformRating: 0, userFeedback: '' });
   };
 
   const handleSubmitReview = async () => {
@@ -853,9 +853,12 @@ function SessionList() {
     try {
       await httpService.put(`/mentorSession/${reviewSess.id}/feedback`, {
         data: {
-          role:         'user',
-          rating:       reviewForm.rating,
-          userFeedback: reviewForm.userFeedback,
+          role:                'user',
+          rating:              reviewForm.rating,
+          behaviorRating:      reviewForm.behaviorRating,
+          communicationRating: reviewForm.communicationRating,
+          platformRating:      reviewForm.platformRating,
+          feedback:        reviewForm.userFeedback,
         },
         token: true,
       });
@@ -874,94 +877,111 @@ function SessionList() {
 
   return (
     <>
-      {/* ── Review modal ── */}
+      {/* ── Rating modal ── */}
       {reviewSess && (
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 400,
             background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 16,
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: 16, overflowY: 'auto',
           }}
           onClick={e => { if (e.target === e.currentTarget) setReviewSess(null); }}
         >
           <div style={{
-            background: 'var(--surface,#fff)', borderRadius: 18,
-            padding: '28px 28px 24px', maxWidth: 420, width: '100%',
+            background: 'var(--surface,#fff)', borderRadius: 20,
+            width: '100%', maxWidth: 460,
             boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
+            overflow: 'hidden', margin: 'auto',
           }}>
-            <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--ink)', marginBottom: 3 }}>
-              Rate your session
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 22 }}>
-              with {reviewSess.mentorName}
-            </div>
-
-            {/* Star picker */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 10 }}>Rating</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {[1, 2, 3, 4, 5].map(i => (
-                  <button
-                    key={i}
-                    onClick={() => setReviewForm(f => ({ ...f, rating: i }))}
-                    style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', transition: 'transform 0.12s' }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.18)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
-                  >
-                    <svg viewBox="0 0 20 20" width={34} height={34}
-                      fill={i <= reviewForm.rating ? '#F59E0B' : 'none'}
-                      stroke={i <= reviewForm.rating ? '#F59E0B' : '#D1D5DB'}
-                      strokeWidth="1.2">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  </button>
-                ))}
+            {/* header */}
+            <div style={{ background: 'var(--grad)', padding: '22px 24px 18px', color: '#fff', position: 'relative' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, marginBottom: 4 }}>
+                Rate your session
               </div>
+              <div style={{ fontSize: 13, opacity: 0.85 }}>with {reviewSess.mentorName}</div>
+              <button onClick={() => setReviewSess(null)}
+                style={{ position: 'absolute', top: 16, right: 18, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: '#fff', fontSize: 18, display: 'grid', placeItems: 'center' }}>
+                ×
+              </button>
             </div>
 
-            {/* Feedback textarea */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 8 }}>
-                Feedback <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>(optional)</span>
-              </label>
-              <textarea
-                value={reviewForm.userFeedback}
-                onChange={e => setReviewForm(f => ({ ...f, userFeedback: e.target.value }))}
-                placeholder="Share your experience with this mentor…"
-                rows={4}
-                style={{
-                  width: '100%', padding: '10px 13px',
-                  border: '1.5px solid var(--border,#e2e8f0)',
-                  borderRadius: 10, fontSize: 14,
-                  color: 'var(--ink)', background: 'var(--surface-2,#f8fafc)',
-                  resize: 'vertical', outline: 'none', boxSizing: 'border-box',
-                  fontFamily: 'inherit', lineHeight: 1.5,
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => { e.target.style.borderColor = 'var(--indigo,#4F46E5)'; }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border,#e2e8f0)'; }}
-              />
-            </div>
+            {/* body */}
+            <div style={{ padding: '22px 24px 24px' }}>
+              {/* rating rows */}
+              {[
+                { label: 'Mentor Behaviour',      key: 'behaviorRating'      },
+                { label: 'Communication',         key: 'communicationRating' },
+                { label: 'Platform Experience',   key: 'platformRating'      },
+                { label: 'Overall Rating',       key: 'rating'              },
+              ].map(({ label, key }) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--border,#e2e8f0)' }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)' }}>{label}</span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setReviewForm(f => ({ ...f, [key]: i }))}
+                        style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', transition: 'transform 0.1s' }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.2)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+                      >
+                        <svg viewBox="0 0 20 20" width={26} height={26}
+                          fill={i <= reviewForm[key] ? '#F59E0B' : 'none'}
+                          stroke={i <= reviewForm[key] ? '#F59E0B' : '#D1D5DB'}
+                          strokeWidth="1.2">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => setReviewSess(null)}
-                disabled={submitting}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={submitting || reviewForm.rating === 0}
-                onClick={handleSubmitReview}
-                style={{ flex: 2 }}
-              >
-                {submitting ? 'Submitting…' : 'Submit Review'}
-              </button>
+              {/* Feedback textarea */}
+              <div style={{ marginTop: 18, marginBottom: 20 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 8 }}>
+                  Feedback 
+                </label>
+                <textarea
+                  value={reviewForm.userFeedback}
+                  onChange={e => setReviewForm(f => ({ ...f, userFeedback: e.target.value }))}
+                  placeholder="Share your experience with this mentor…"
+                  rows={3}
+                  style={{
+                    width: '100%', padding: '10px 13px',
+                    border: '1.5px solid var(--border,#e2e8f0)',
+                    borderRadius: 10, fontSize: 14,
+                    color: 'var(--ink)', background: 'var(--surface-2,#f8fafc)',
+                    resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+                    fontFamily: 'inherit', lineHeight: 1.5,
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--indigo,#4F46E5)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border,#e2e8f0)'; }}
+                />
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setReviewSess(null)}
+                  disabled={submitting}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  disabled={submitting || reviewForm.rating === 0}
+                  onClick={handleSubmitReview}
+                  style={{ flex: 2 }}
+                >
+                  {submitting ? 'Submitting…' : 'Submit Rating'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

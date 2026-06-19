@@ -16,7 +16,10 @@ const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct
 const money = (n) => '₹' + n.toLocaleString('en-IN');
 
 function parseDate(str) {
-  const [y, m, d] = str.split('-').map(Number);
+  if (!str) return new Date(NaN);
+  // handles both "YYYY-MM-DD" and ISO "YYYY-MM-DDTHH:mm:ss.sssZ"
+  const datePart = String(str).slice(0, 10);
+  const [y, m, d] = datePart.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 function fmtDateLabel(str) {
@@ -70,6 +73,16 @@ function loadRazorpayScript() {
   });
 }
 
+/* auto-generate a unique transactionId, e.g. TXN-20260616-483920 */
+function generateTransactionId() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const suffix = String(Date.now()).slice(-6);
+  return `TXN-${y}${m}${d}-${suffix}`;
+}
+
 /* warning icon */
 const WarnIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ flexShrink: 0 }}>
@@ -108,11 +121,22 @@ export default function BookingModal() {
     setLoading(true);
     httpService
       .get('/mentorAvailability', { params: { mentorId: mentor.id }, token: true })
-      .then(res => setAvailDates(res?.data ?? []))
-      .catch(() => setAvailDates([]))
+      .then(res => {
+        console.log('[BookingModal] mentorId =', mentor.id, '| raw res =', res);
+        const dates =
+          Array.isArray(res)                   ? res :
+          Array.isArray(res?.data)             ? res.data :
+          Array.isArray(res?.rows)             ? res.rows :
+          Array.isArray(res?.result)           ? res.result :
+          Array.isArray(res?.availabilities)   ? res.availabilities :
+          [];
+        console.log('[BookingModal] extracted dates =', dates);
+        setAvailDates(dates);
+      })
+      .catch((err) => { console.error('[BookingModal] availability error', err); setAvailDates([]); })
       .finally(() => setLoading(false));
   }, [mentor]);
-
+console.log(availDates)
   /* fetch the current user's existing sessions for this mentor so we can
      detect if they try to book the same slot a second time */
   useEffect(() => {
@@ -184,6 +208,25 @@ export default function BookingModal() {
     setStep(3);
   };
 
+  /* ── PUT /transaction/status/:transactionId after the gateway closes ── */
+  const updateTransactionStatus = async (transactionId, status, gatewayResponse) => {
+    try {
+      await httpService.put(`/transaction/status/${transactionId}`, {
+        data: {
+          status, // 'pending' | 'success' | 'failed' | 'cancelled' | 'refunded'
+          razorPayTransactionId:
+            gatewayResponse?.razorpay_payment_id ||
+            gatewayResponse?.error?.metadata?.payment_id ||
+            null,
+          razorPayLogs: gatewayResponse || {},
+        },
+        token: true,
+      });
+    } catch {
+      /* non-fatal — booking flow continues regardless */
+    }
+  };
+
   /* ── Pay button handler ── */
   const handlePayAndBook = async () => {
     setPaying(true);
@@ -200,6 +243,32 @@ export default function BookingModal() {
         return;
       }
 
+      const userId        = getUserIdFromToken();
+      const transactionId = generateTransactionId();
+
+      /* 1. log a 'created' transaction before opening the gateway */
+      try {
+        await httpService.post('/transaction', {
+          data: {
+            transactionId,
+            authUserId:     mentor.id,
+            userId,
+            formType:       'mentorbooking',
+            referenceId:    selSlot.slotId,
+            gateway:        'razorpay',
+            amount:         total,
+            currency:       'INR',
+            gatewayOrderId: '',
+            status:         'created',
+            remarks:        `Mentor booking payment for ${mentor.name}`,
+          },
+          token: true,
+        });
+      } catch {
+        /* non-fatal — continue to payment even if logging fails */
+      }
+
+      /* 2. open Razorpay gateway */
       const loaded = await loadRazorpayScript();
       if (!loaded) {
         toast.error('Payment service unavailable. Please try again.');
@@ -265,7 +334,13 @@ export default function BookingModal() {
           'GST':                  String(gstAmount),
         },
         theme:    { color: '#4F46E5' },
-        modal:    { ondismiss: () => setPaying(false) },
+        modal:    {
+          ondismiss: async () => {
+            /* 3. gateway UI closed (user cancelled) — update the transaction */
+            await updateTransactionStatus(transactionId, 'cancelled', {});
+            setPaying(false);
+          },
+        },
       };
 
       const rzp = new window.Razorpay(options);
@@ -389,7 +464,7 @@ export default function BookingModal() {
                   <div className="bk-sub" style={{ gridColumn: '1/-1', margin: 0 }}>
                     Select a date to see open slots.
                   </div>
-                ) : selDate.slots.map((s) => {
+                ) : (selDate.slots || []).map((s) => {
                   const mine   = isMySlot(s);
                   const past   = isSlotPast(selDate.date, s.label);
                   const booked = s.isBooked || mine || past;
