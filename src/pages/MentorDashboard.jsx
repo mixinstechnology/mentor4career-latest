@@ -1336,38 +1336,145 @@ function MentorWebinars({ userId }) {
 /* ═══════════════════════════════════════════════════════
    EARNINGS
 ═══════════════════════════════════════════════════════ */
-function Earnings() {
-  const payouts = [
-    { name: 'Kavya M.',   topic: 'Resume review',      when: 'Thu, 05 Jun', amount: '₹599',   status: 'Paid'    },
-    { name: 'Preethi S.', topic: 'DSA prep session',   when: 'Mon, 02 Jun', amount: '₹1,199', status: 'Paid'    },
-    { name: 'Neha J.',    topic: 'Placement strategy',  when: 'Mon, 26 May', amount: '₹599',   status: 'Paid'    },
-    { name: 'Rohan D.',   topic: 'Interview prep',      when: 'Sat, 14 Jun', amount: '₹1,199', status: 'Pending' },
-    { name: 'Tanvi A.',   topic: 'Career guidance',     when: 'Sun, 15 Jun', amount: '₹599',   status: 'Pending' },
-  ];
+function Earnings({ userId }) {
+  const [sessions, setSessions] = useState([]);
+  const [loading,  setLoading]  = useState(false);
+  const [page,     setPage]     = useState(1);
+  const [pag,      setPag]      = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const LIMIT = 10;
+
+  const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const load = async (pg = 1) => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const res = await httpService.get(`/mentorSession/mentor/${userId}`, {
+        params: { page: pg, limit: LIMIT, paymentStatus: 'done' },
+        token: true,
+      });
+      setSessions(Array.isArray(res?.data) ? res.data : []);
+      setPag(res?.pagination ?? { page: pg, limit: LIMIT, total: 0, totalPages: 1 });
+      setPage(pg);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (userId) load(1); }, [userId]); // eslint-disable-line
+
+  const totMentorFee  = sessions.reduce((s, r) => s + Number(r.mentorFee  || 0), 0);
+  const totRevenue    = sessions.reduce((s, r) => s + Number(r.amount     || 0), 0);
+  const totGst        = sessions.reduce((s, r) => s + Number(r.gstAmount  || 0), 0);
+  const totPlatform   = sessions.reduce((s, r) => s + Number(r.platformFee|| 0), 0);
+
+  const COL = '1.6fr 1fr 1fr 1fr 1fr 1fr';
+
   return (
     <div>
       <div className="db-section-head"><h2>Earnings</h2><p>Track your session revenue and payout history</p></div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14, marginBottom: 24 }}>
-        {[{ v: '₹18,400', l: 'This month' },{ v: '₹2,397', l: 'Pending payout' },{ v: '296', l: 'Total sessions' },{ v: '₹1,24,800', l: 'All time' }].map(k => (
-          <div className="card" key={k.l} style={{ padding: 18 }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: 'var(--indigo)' }}>{k.v}</div>
-            <div style={{ color: 'var(--ink-2)', fontSize: 13, marginTop: 4 }}>{k.l}</div>
+
+      {/* ── KPI cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(155px,1fr))', gap: 14, marginBottom: 26 }}>
+        {[
+          { v: fmt(totMentorFee), l: 'Mentor Fee Earned', ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/><path d="M12 6v2m0 8v2M9 10a3 3 0 016 0c0 2-1.5 2.5-3 3s-3 1-3 3a3 3 0 006 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>, bg: '#EEF2FF', col: '#4F46E5' },
+          { v: fmt(totRevenue),   l: 'Total Revenue',     ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M3 17l4-4 4 4 4-6 4 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,                                  bg: '#D1FAE5', col: '#065F46' },
+          { v: fmt(totGst),       l: 'GST Collected',     ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>, bg: '#FEF9C3', col: '#92400E' },
+          { v: String(pag.total || 0), l: 'Paid Sessions', ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M8 15l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, bg: '#F0FDF4', col: '#15803D' },
+        ].map(k => (
+          <div className="card" key={k.l} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: k.bg, color: k.col, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>{k.ic}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: k.col, lineHeight: 1 }}>{k.v}</div>
+            <div style={{ color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 600, marginTop: 6 }}>{k.l}</div>
           </div>
         ))}
       </div>
-      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, marginBottom: 12 }}>Recent transactions</h3>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {payouts.map((p, i, arr) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{p.name}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{p.topic} · {p.when}</div>
+
+      {/* ── table header row ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, margin: 0 }}>Session Earnings</h3>
+        {pag.total > 0 && (
+          <span style={{ fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 500 }}>
+            Showing <b style={{ color: 'var(--ink)' }}>{(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, pag.total)}</b> of <b style={{ color: 'var(--ink)' }}>{pag.total}</b> sessions
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="card" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
+          <svg viewBox="0 0 24 24" fill="none" width="36" height="36" style={{ marginBottom: 12 }}><circle cx="12" cy="12" r="9" stroke="#E2E8F0" strokeWidth="2.5"/><path d="M12 3a9 9 0 019 9" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Loading earnings…</div>
+        </div>
+      ) : sessions.length === 0 ? (
+        <div className="card" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
+          <div style={{ fontSize: 38, marginBottom: 12 }}>💸</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--ink-2)', marginBottom: 6 }}>No earnings yet</div>
+          <div style={{ fontSize: 13.5 }}>Your paid session earnings will appear here.</div>
+        </div>
+      ) : (
+        <>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Column headers */}
+            <div style={{ display: 'grid', gridTemplateColumns: COL, gap: 0, padding: '10px 18px', background: '#F8FAFC', borderBottom: '1.5px solid var(--border)' }}>
+              {['Student & Date', 'Total Paid', 'Your Fee', 'Platform Fee', 'GST', 'Status'].map((h, i) => (
+                <div key={h} style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: i > 0 ? 'right' : 'left' }}>{h}</div>
+              ))}
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15 }}>{p.amount}</div>
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: p.status === 'Paid' ? 'var(--emerald-soft)' : 'var(--amber-soft)', color: p.status === 'Paid' ? 'var(--emerald)' : '#B45309' }}>{p.status}</span>
+
+            {/* Data rows */}
+            {sessions.map((s, i, arr) => (
+              <div key={s.id ?? i} style={{ display: 'grid', gridTemplateColumns: COL, gap: 0, padding: '13px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{s.studentName || '—'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{s.date}  ·  {s.time}</div>
+                  {Number(s.discount) > 0 && (
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2, fontWeight: 600 }}>Discount applied: {fmt(s.discount)}</div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: 'var(--ink)' }}>{fmt(s.amount)}</div>
+                <div style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: '#10B981' }}>{fmt(s.mentorFee)}</div>
+                <div style={{ textAlign: 'right', fontSize: 13, color: 'var(--ink-3)', fontWeight: 600 }}>{fmt(s.platformFee)}</div>
+                <div style={{ textAlign: 'right', fontSize: 13, color: '#B45309', fontWeight: 600 }}>{fmt(s.gstAmount)}</div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: s.isSessionDone ? 'var(--emerald-soft)' : '#FEF3C7', color: s.isSessionDone ? 'var(--emerald)' : '#B45309', whiteSpace: 'nowrap' }}>
+                    {s.isSessionDone ? 'Completed' : 'Pending'}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {/* Page totals footer */}
+            {/* <div style={{ display: 'grid', gridTemplateColumns: COL, gap: 0, padding: '11px 18px', background: '#F8FAFC', borderTop: '1.5px solid var(--border)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Page Total</div>
+              <div style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: 'var(--ink)' }}>{fmt(totRevenue)}</div>
+              <div style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: '#10B981' }}>{fmt(totMentorFee)}</div>
+              <div style={{ textAlign: 'right', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 700 }}>{fmt(totPlatform)}</div>
+              <div style={{ textAlign: 'right', fontSize: 12.5, color: '#B45309', fontWeight: 700 }}>{fmt(totGst)}</div>
+              <div />
+            </div> */}
           </div>
-        ))}
-      </div>
+
+          {/* ── pagination ── */}
+          {pag.totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 }}>
+              <button onClick={() => load(1)} disabled={page === 1 || loading}
+                style={{ padding: '7px 11px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 9, fontWeight: 700, fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1, color: 'var(--ink-2)' }}>«</button>
+              <button onClick={() => load(page - 1)} disabled={page === 1 || loading}
+                style={{ padding: '7px 14px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1, color: 'var(--ink-2)' }}>‹ Prev</button>
+              {Array.from({ length: Math.min(pag.totalPages, 5) }, (_, i) => {
+                const start = Math.max(1, Math.min(page - 2, pag.totalPages - 4));
+                return start + i;
+              }).filter(p => p >= 1 && p <= pag.totalPages).map(p => (
+                <button key={p} onClick={() => load(p)} disabled={loading}
+                  style={{ padding: '7px 13px', background: page === p ? '#4F46E5' : '#fff', color: page === p ? '#fff' : 'var(--ink-2)', border: `1.5px solid ${page === p ? '#4F46E5' : 'var(--border)'}`, borderRadius: 9, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: page === p ? '0 2px 8px rgba(79,70,229,.3)' : 'none' }}>{p}</button>
+              ))}
+              <button onClick={() => load(page + 1)} disabled={page >= pag.totalPages || loading}
+                style={{ padding: '7px 14px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: page >= pag.totalPages ? 'not-allowed' : 'pointer', opacity: page >= pag.totalPages ? 0.4 : 1, color: 'var(--ink-2)' }}>Next ›</button>
+              <button onClick={() => load(pag.totalPages)} disabled={page === pag.totalPages || loading}
+                style={{ padding: '7px 11px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 9, fontWeight: 700, fontSize: 12, cursor: page === pag.totalPages ? 'not-allowed' : 'pointer', opacity: page === pag.totalPages ? 0.4 : 1, color: 'var(--ink-2)' }}>»</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1484,7 +1591,7 @@ export default function MentorDashboard() {
           { v: sessionCount > 0 ? sessionCount : '—', l: 'Sessions booked'  },
           { v: sessionsDone > 0 ? sessionsDone : '—', l: 'Sessions done'    },
           { v: availCount   > 0 ? availCount   : '—', l: 'Available dates'  },
-          { v: myProfile ? `${calcCompletion(myProfile)}%` : '…', l: 'Profile complete' },
+          { v: ticketCount > 0 ? ticketCount : '0',              l: 'Open Tickets'     },
         ]}
         navItems={NAV.map(item => {
           if (item.divider) return item;
@@ -1553,7 +1660,7 @@ export default function MentorDashboard() {
           <MentorWebinars userId={myProfile?.authUserId} />
         )}
 
-        {section === 'earnings' && <Earnings />}
+        {section === 'earnings' && <Earnings userId={myProfile?.authUserId} />}
 
         {section === 'profile' && (
           <ProfileSection

@@ -1,19 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import {MENTORS}  from '../data/mentors.js';
 import MentorCard from '../components/MentorCard.jsx';
 import JourneyRail from '../components/JourneyRail.jsx';
-import httpService from '../utils/apiService.tsx'
 import { Logo, ArrowRight, Search, Cap, Person, Doc, Brief, Webinar, Check } from '../components/Icons.jsx';
+import JobAdPopup from '../components/JobAdPopup.jsx';
 
 const EXAMS = ['JEE', 'NEET', 'MHT-CET', 'CAT / MBA', 'CUET'];
+
+
 // const FEATURED = ['Priya Nair', 'Siddharth Iyer', 'Aarav Sharma', 'Rohit Deshmukh'];
 
 export default function Home() {
   const { openAuth } = useAuth();
   const [exam, setExam] = useState('JEE');
- const mentor = MENTORS();
+  const [showJobAd, setShowJobAd] = useState(false);
+  const mentor = MENTORS();
+
+  useEffect(() => {
+    if (sessionStorage.getItem('jobAdSeen')) return;
+    const t = setTimeout(() => {
+      setShowJobAd(true);
+      sessionStorage.setItem('jobAdSeen', '1');
+    }, 1500);
+    return () => clearTimeout(t);
+  }, []);
 
 // console.log(mentor)
   // const featured = FEATURED.map((n) => mentor?.find((m) => m.name === n)).filter(Boolean);
@@ -21,37 +33,39 @@ const featured = mentor?.slice(0, 6) || []
   // console.log(featured)
   return (
     <>
-      <div className="announce">
+      {showJobAd && <JobAdPopup onClose={() => setShowJobAd(false)} />}
+
+      {/* <div className="announce">
         <div className="wrap">
           <span className="a-pill">NEW</span>
           <span className="a-extra">AI College Predictor 2026 is live —</span>
           <b>predict your best college free.</b>
           <Link to="/predictor">Try now <ArrowRight width="24" height="24" /></Link>
         </div>
-      </div>
+      </div> */}
 
       <main id="top">
         {/* HERO */}
         <section className="hero">
           <div className="wrap hero-grid">
             <div className="hero-copy reveal">
-              <span className="eyebrow"><span className="dot" /> AI Career Guidance for Students &amp; Freshers</span>
-              <h1 style={{ marginTop: 20 }}>Find the right college, mentor &amp; <span className="grad-text">your dream career</span></h1>
+              {/* <span className="eyebrow"><span className="dot" /> AI Career Guidance for Students &amp; Freshers</span> */}
+              <h1 style={{ marginTop: 0 }}>Find the right college, mentor &amp; <span className="grad-text">your dream career</span></h1>
               <p className="sub">AI college predictions, verified mentors, interview prep, internships and jobs — everything you need to plan your future with confidence, in one platform.</p>
 
-              <div className="hero-search">
+              {/* <div className="hero-search">
                 <div className="hs-field">
                   <Search width="24" height="24" />
                   <input type="text" placeholder="Search colleges, exams, careers or mentors…" />
                 </div>
                 <button className="btn btn-primary">Search</button>
-              </div>
-              <div className="exam-chips">
+              </div> */}
+              {/* <div className="exam-chips">
                 <span className="lbl">Popular:</span>
                 {EXAMS.map((e) => (
                   <button key={e} className={'chip' + (exam === e ? ' active' : '')} onClick={() => setExam(e)}>{e}</button>
                 ))}
-              </div>
+              </div> */}
 
               <div className="hero-trust">
                 <div className="avatars">
@@ -62,8 +76,9 @@ const featured = mentor?.slice(0, 6) || []
                   <span style={{ background: 'linear-gradient(135deg,#06B6D4,#3B82F6)' }}>K</span>
                 </div>
                 <div>
-                  <div className="stars">★★★★★ <b style={{ color: 'var(--ink)', fontSize: 14 }}>4.9/5</b></div>
-                  <small>Trusted by 1,20,000+ students across India</small>
+                 <small>1-1 Mentorship Guidance</small>
+                  {/* <div className="stars">★★★★★ <b style={{ color: 'var(--ink)', fontSize: 14 }}>4.9/5</b></div>
+                  <small>Trusted by 1,20,000+ students across India</small> */}
                 </div>
               </div>
             </div>
@@ -73,7 +88,7 @@ const featured = mentor?.slice(0, 6) || []
               <span className="hero-blob" />
               <div className="float-card fc1">
                 <span className="fc-ico" style={{ background: 'linear-gradient(135deg,#0FA968,#06B6D4)' }}><Check width="20" height="20" /></span>
-                <div><div className="fc-t">Profile Verified</div><div className="fc-s">12,000+ mentors</div></div>
+                <div><div className="fc-t">Profile Verified</div><div className="fc-s">100+ mentors</div></div>
               </div>
               <div className="float-card fc2">
                 <span className="fc-ring"><i>92%</i></span>
@@ -92,15 +107,28 @@ const featured = mentor?.slice(0, 6) || []
           </div>
         </section>
 
-        {/* LOGO STRIP */}
+        {/* DOMAIN STRIP */}
         <section className="logos">
           <div className="wrap">
-            <div className="lead">Students mentored by &amp; placed at top colleges and companies</div>
+            <div className="lead">Expert guidance across exams, careers &amp; college admissions — all in one place</div>
             <div className="marquee">
               <div className="marquee-track">
-                {['IIT Bombay', 'NIT Trichy', 'AIIMS Delhi', 'IIM Ahmedabad', 'TCS', 'Infosys', 'Wipro'].concat(['IIT Bombay', 'NIT Trichy', 'AIIMS Delhi', 'IIM Ahmedabad', 'TCS', 'Infosys', 'Wipro']).map((name, i) => (
+                {(((items) => [...items, ...items])([
+                  { label: 'JEE Prep', grad: 'linear-gradient(135deg,#4F46E5,#3B82F6)' },
+                  { label: 'NEET Prep', grad: 'linear-gradient(135deg,#0FA968,#06B6D4)' },
+                  { label: 'CAT / MBA', grad: 'linear-gradient(135deg,#7C5CF7,#EC4899)' },
+                  { label: 'MHT-CET', grad: 'linear-gradient(135deg,#F59E0B,#EF4444)' },
+                  { label: 'CUET', grad: 'linear-gradient(135deg,#06B6D4,#3B82F6)' },
+                  { label: 'GATE', grad: 'linear-gradient(135deg,#EC4899,#F59E0B)' },
+                  { label: 'Resume Building', grad: 'linear-gradient(135deg,#4F46E5,#0FA968)' },
+                  { label: 'Interview Prep', grad: 'linear-gradient(135deg,#3B82F6,#7C5CF7)' },
+                  { label: 'College Admissions', grad: 'linear-gradient(135deg,#0FA968,#4F46E5)' },
+                  { label: 'Coding Interviews', grad: 'linear-gradient(135deg,#EF4444,#F59E0B)' },
+                  { label: 'Career Guidance', grad: 'linear-gradient(135deg,#06B6D4,#EC4899)' },
+                  { label: 'Scholarship Help', grad: 'linear-gradient(135deg,#7C5CF7,#3B82F6)' },
+                ])).map((item, i) => (
                   <span className="logo-chip" key={i}>
-                    <span className="mark" style={{ background: 'linear-gradient(135deg,#4F46E5,#3B82F6)' }}>{name.slice(0, 3).toUpperCase()}</span> {name}
+                    <span className="mark" style={{ background: item.grad }}>{item.label.slice(0, 3).toUpperCase()}</span> {item.label}
                   </span>
                 ))}
               </div>
@@ -187,7 +215,7 @@ const featured = mentor?.slice(0, 6) || []
           <div className="wrap">
             <div className="cta-box reveal">
               <h2>Stop guessing. Start building your career.</h2>
-              <p>Join 1,20,000+ students getting personalised guidance from verified mentors — and make your next decision with confidence.</p>
+              <p>Join 1,000+ students getting personalised guidance from verified mentors — and make your next decision with confidence.</p>
               <div className="cta-btns">
                 <button className="btn btn-white btn-lg" onClick={() => openAuth('signup')}>Register Free</button>
                 <Link to="/mentors" className="btn btn-clear btn-lg">Find a Mentor</Link>

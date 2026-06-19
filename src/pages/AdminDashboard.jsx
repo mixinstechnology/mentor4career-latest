@@ -79,15 +79,18 @@ const ALL_SESSIONS = [
 const STATUS_LABEL = { upcoming: 'Upcoming', completed: 'Completed', cancelled: 'Cancelled' };
 
 const VIEW_META = {
-  overview: { title: 'Dashboard',              sub: 'Platform health at a glance'                    },
-  mentors:  { title: 'Mentors',                sub: 'Manage mentor accounts and verifications'        },
-  users:    { title: 'Students',               sub: 'All registered students on the platform'         },
-  sessions: { title: 'Webinars',               sub: 'Platform-wide webinar and session activity'      },
-  payouts:  { title: 'Mentor Payouts',         sub: 'Manage payout requests and history'              },
-  jobs:     { title: 'Jobs & Internships',     sub: 'Manage all job listings on the platform'         },
-  feedback: { title: 'Feedback & Ratings',     sub: 'Review mentor and session feedback'              },
-  revenue:  { title: 'Revenue & Payments',     sub: 'Platform revenue and payment analytics'          },
-  tickets:  { title: 'Support Tickets',        sub: 'Manage open support requests'                    },
+  overview:                { title: 'Dashboard',              sub: 'Platform health at a glance'                         },
+  mentors:                 { title: 'Mentors',                sub: 'Manage mentor accounts and verifications'             },
+  users:                   { title: 'Students',               sub: 'All registered students on the platform'              },
+  sessions:                { title: 'Webinars',               sub: 'Platform-wide webinar and session activity'           },
+  payouts:                 { title: 'Mentor Payouts',         sub: 'Manage payout requests and history'                   },
+  jobs:                    { title: 'Jobs & Internships',     sub: 'Manage all job listings on the platform'              },
+  feedback:                { title: 'Feedback & Ratings',     sub: 'Review mentor and session feedback'                   },
+  revenue:                 { title: 'Revenue & Payments',     sub: 'Platform revenue and payment analytics'               },
+  tickets:                 { title: 'Support Tickets',        sub: 'Manage open support requests'                         },
+  'report-mentor-payout':  { title: 'Mentor Payout Report',  sub: 'Detailed mentor payout breakdown by date range'       },
+  'report-webinar-earning':{ title: 'Webinar Earning Report', sub: 'Revenue earned from webinar registrations'            },
+  'report-gst':            { title: 'GST Report',             sub: 'GST collected on all platform transactions'           },
 };
 
 /* ── pill components ── */
@@ -396,43 +399,76 @@ function MentorsView() {
 
   return (
     <div>
-      {/* ── filter bar ── */}
-      <div className="filter-bar">
-        <div className="seg-row">
-          {[
-            { v: 'all',         l: 'All'        },
-            { v: 'verified',    l: 'Verified'   },
-            { v: 'notverified', l: 'Unverified' },
-          ].map(o => (
-            <button key={o.v} className={`chip${filters.status === o.v ? ' active' : ''}`} onClick={() => setFilter('status')(o.v)}>{o.l}</button>
-          ))}
+      {/* ── filter panel ── */}
+      <div className="adm-fp">
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Filters
+          </div>
+          {(filters.status !== 'all' || filters.active !== 'all' || filters.charge !== 'all' || search.trim()) && (
+            <div className="adm-fp-actions">
+              <span className="adm-fp-badge">
+                {[filters.status !== 'all', filters.active !== 'all', filters.charge !== 'all', !!search.trim()].filter(Boolean).length} active
+              </span>
+              <button className="adm-fp-clear" onClick={() => { setFilters({ status: 'all', active: 'all', charge: 'all' }); setSearch(''); }}>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
-        <div className="seg-row" style={{ marginLeft: 4 }}>
-          {[
-            { v: 'all',      l: 'All Status' },
-            { v: 'active',   l: 'Active'     },
-            { v: 'inactive', l: 'Inactive'   },
-          ].map(o => (
-            <button key={o.v} className={`chip${filters.active === o.v ? ' active' : ''}`} onClick={() => setFilter('active')(o.v)}>{o.l}</button>
-          ))}
+        <div className="adm-fp-row">
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Verification</div>
+            <div className="adm-fp-chips">
+              {[
+                { v: 'all', l: 'All' },
+                { v: 'verified', l: 'Verified' },
+                { v: 'notverified', l: 'Unverified' },
+              ].map(o => (
+                <button key={o.v} className={`chip${filters.status === o.v ? ' active' : ''}`} onClick={() => setFilter('status')(o.v)}>{o.l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="adm-fp-divider" />
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Activity</div>
+            <div className="adm-fp-chips">
+              {[
+                { v: 'all', l: 'All Status' },
+                { v: 'active', l: 'Active' },
+                { v: 'inactive', l: 'Inactive' },
+              ].map(o => (
+                <button key={o.v} className={`chip${filters.active === o.v ? ' active' : ''}`} onClick={() => setFilter('active')(o.v)}>{o.l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="adm-fp-divider" />
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Charge</div>
+            <div className="adm-fp-chips">
+              {[
+                { v: 'all', l: 'Any' },
+                { v: 'free', l: 'Free' },
+                { v: 'low', l: '< ₹500' },
+                { v: 'high', l: '₹500+' },
+              ].map(o => (
+                <button key={o.v} className={`chip${filters.charge === o.v ? ' active' : ''}`} onClick={() => setFilter('charge')(o.v)}>{o.l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="adm-fp-group" style={{ marginLeft: 'auto' }}>
+            <div className="adm-fp-label">Search</div>
+            <div className="adm-fp-search">
+              <svg className="sp-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              <input type="text" placeholder="Name, email…" value={search} onChange={e => setSearch(e.target.value)} />
+              {search && <button className="sp-clear" onClick={() => setSearch('')}>×</button>}
+            </div>
+          </div>
         </div>
-        <div className="seg-row" style={{ marginLeft: 4 }}>
-          {[
-            { v: 'all',  l: 'Any charge' },
-            { v: 'free', l: 'Free'       },
-            { v: 'low',  l: '< ₹500'    },
-            { v: 'high', l: '₹500+'     },
-          ].map(o => (
-            <button key={o.v} className={`chip${filters.charge === o.v ? ' active' : ''}`} onClick={() => setFilter('charge')(o.v)}>{o.l}</button>
-          ))}
-        </div>
-        <span className="badge b-gray" style={{ marginLeft: 'auto' }}>{filtered.length} / {mentors.length}</span>
-        {(filters.status !== 'all' || filters.active !== 'all' || filters.charge !== 'all') && (
-          <button className="link-btn danger" onClick={() => setFilters({ status: 'all', active: 'all', charge: 'all' })}>Clear</button>
-        )}
-        <div className="fb-search">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          <input type="text" placeholder="Search name, email…" value={search} onChange={e => setSearch(e.target.value)} />
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>
+          Showing <b style={{ color: 'var(--ink)' }}>{filtered.length}</b> of <b style={{ color: 'var(--ink)' }}>{mentors.length}</b> mentors
         </div>
       </div>
 
@@ -581,20 +617,46 @@ function UsersView() {
 
   return (
     <div>
-      {/* ── filter bar ── */}
-      <div className="filter-bar">
-        <div className="seg-row">
-          <button className={`chip${typeFilter === 'all' ? ' active' : ''}`} onClick={() => setTypeFilter('all')}>All</button>
-          {types.map(t => (
-            <button key={t} className={`chip${typeFilter === t ? ' active' : ''}`} onClick={() => setTypeFilter(t)}>
-              {TYPE_LABEL[t] || t}
-            </button>
-          ))}
+      {/* ── filter panel ── */}
+      <div className="adm-fp">
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Filters
+          </div>
+          {(typeFilter !== 'all' || search.trim()) && (
+            <div className="adm-fp-actions">
+              <span className="adm-fp-badge">{[typeFilter !== 'all', !!search.trim()].filter(Boolean).length} active</span>
+              <button className="adm-fp-clear" onClick={() => { setTypeFilter('all'); setSearch(''); }}>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
-        <span className="badge b-gray" style={{ marginLeft: 'auto' }}>{filtered.length} / {users.length}</span>
-        <div className="fb-search">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          <input type="text" placeholder="Search name, email…" value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="adm-fp-row">
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">User Type</div>
+            <div className="adm-fp-chips">
+              <button className={`chip${typeFilter === 'all' ? ' active' : ''}`} onClick={() => setTypeFilter('all')}>All</button>
+              {types.map(t => (
+                <button key={t} className={`chip${typeFilter === t ? ' active' : ''}`} onClick={() => setTypeFilter(t)}>
+                  {TYPE_LABEL[t] || t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="adm-fp-group" style={{ marginLeft: 'auto' }}>
+            <div className="adm-fp-label">Search</div>
+            <div className="adm-fp-search">
+              <svg className="sp-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              <input type="text" placeholder="Name, email…" value={search} onChange={e => setSearch(e.target.value)} />
+              {search && <button className="sp-clear" onClick={() => setSearch('')}>×</button>}
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>
+          Showing <b style={{ color: 'var(--ink)' }}>{filtered.length}</b> of <b style={{ color: 'var(--ink)' }}>{users.length}</b> users
         </div>
       </div>
 
@@ -699,6 +761,7 @@ function SessionsView() {
   const [submitting,    setSubmitting]    = useState(false);
   const [statusModal,   setStatusModal]   = useState(null); // { webinar, newStatus }
   const [updatingId,    setUpdatingId]    = useState(null);
+  const [wfe,           setWfe]           = useState({});
 
   const loadWebinars = async (pg = 1, replace = true, status = statusFilter) => {
     setLoading(true);
@@ -723,10 +786,16 @@ function SessionsView() {
   useEffect(() => { loadWebinars(1, true, statusFilter); }, [statusFilter]); // eslint-disable-line
 
   const handleAdd = async () => {
-    if (!form.title.trim() || !form.presenter.trim() || !form.date || !form.time || !form.link.trim()) {
-      toast.error('Please fill in all required fields.');
-      return;
-    }
+    const werrs = {};
+    if (!form.title.trim())     werrs.title     = 'Title is required.';
+    if (!form.presenter.trim()) werrs.presenter = 'Presenter name is required.';
+    if (!form.date)             werrs.date      = 'Date is required.';
+    if (!form.time)             werrs.time      = 'Time is required.';
+    if (!form.link.trim())      werrs.link      = 'Meeting link is required.';
+    else if (!/^https?:\/\/.+/.test(form.link.trim())) werrs.link = 'Enter a valid URL (http:// or https://).';
+    if (!form.isFree && (!form.price || Number(form.price) <= 0)) werrs.price = 'Enter a valid price for paid webinars.';
+    if (Object.keys(werrs).length) { setWfe(werrs); return; }
+    setWfe({});
     setSubmitting(true);
     try {
       const createdBy = getLoggedInUserId();
@@ -793,20 +862,33 @@ function SessionsView() {
         </button>
       </div>
 
-      {/* ── status filter pills ── */}
-      <div style={{ background: '#F8FAFC', border: '1.5px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Filter by Status</div>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          <button onClick={() => setStatusFilter('all')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 99, border: `1.5px solid ${statusFilter === 'all' ? '#4F46E5' : 'var(--border)'}`, background: statusFilter === 'all' ? '#EEF2FF' : '#fff', color: statusFilter === 'all' ? '#4F46E5' : 'var(--ink-2)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
-            All
-          </button>
+      {/* ── status filter panel ── */}
+      <div className="adm-fp">
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Filter by Status
+          </div>
+          {statusFilter !== 'all' && (
+            <div className="adm-fp-actions">
+              <span className="adm-fp-badge">1 active</span>
+              <button className="adm-fp-clear" onClick={() => setStatusFilter('all')}>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="adm-fp-chips">
+          <button className={`chip${statusFilter === 'all' ? ' active' : ''}`} onClick={() => setStatusFilter('all')}>All</button>
           {WEBINAR_STATUS_KEYS.map(k => {
             const cfg    = WEBINAR_STATUS_CFG[k];
             const active = statusFilter === k;
             return (
-              <button key={k} onClick={() => setStatusFilter(k)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 99, border: `1.5px solid ${active ? cfg.col : 'var(--border)'}`, background: active ? cfg.bg : '#fff', color: active ? cfg.col : 'var(--ink-2)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
+              <button key={k}
+                onClick={() => setStatusFilter(k)}
+                style={active ? { background: cfg.bg, color: cfg.col, borderColor: cfg.col, transform: 'translateY(-1px)', boxShadow: `0 4px 14px ${cfg.col}33` } : {}}
+                className={`chip${active ? ' active' : ''}`}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
                 {cfg.label}
               </button>
@@ -954,13 +1036,13 @@ function SessionsView() {
       {/* ── Add Webinar modal ── */}
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', padding: 16 }}
-          onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setForm(WEBINAR_EMPTY); } }}>
+          onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setForm(WEBINAR_EMPTY); setWfe({}); } }}>
           <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 560, boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}>
             {/* modal header */}
             <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', padding: '22px 24px 18px', color: '#fff', flexShrink: 0, position: 'relative' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 19, marginBottom: 4 }}>Add New Webinar</div>
               <div style={{ fontSize: 13, opacity: 0.85 }}>Fill in the details to schedule a new webinar.</div>
-              <button onClick={() => { setShowForm(false); setForm(WEBINAR_EMPTY); }}
+              <button onClick={() => { setShowForm(false); setForm(WEBINAR_EMPTY); setWfe({}); }}
                 style={{ position: 'absolute', top: 16, right: 20, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: '#fff', fontSize: 18, display: 'grid', placeItems: 'center' }}>×</button>
             </div>
 
@@ -970,8 +1052,9 @@ function SessionsView() {
               {/* Title */}
               <div>
                 {LBL('Title', true)}
-                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. How to crack FAANG interviews" style={IS} />
+                <input value={form.title} onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setWfe(f => ({ ...f, title: '' })); }}
+                  placeholder="e.g. How to crack FAANG interviews" style={{ ...IS, borderColor: wfe.title ? '#EF4444' : undefined }} />
+                {wfe.title && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{wfe.title}</div>}
               </div>
 
               {/* Description */}
@@ -985,19 +1068,22 @@ function SessionsView() {
               {/* Presenter */}
               <div>
                 {LBL('Presenter', true)}
-                <input value={form.presenter} onChange={e => setForm(f => ({ ...f, presenter: e.target.value }))}
-                  placeholder="Presenter name" style={IS} />
+                <input value={form.presenter} onChange={e => { setForm(f => ({ ...f, presenter: e.target.value })); setWfe(f => ({ ...f, presenter: '' })); }}
+                  placeholder="Presenter name" style={{ ...IS, borderColor: wfe.presenter ? '#EF4444' : undefined }} />
+                {wfe.presenter && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{wfe.presenter}</div>}
               </div>
 
               {/* Date + Time */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   {LBL('Date', true)}
-                  <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={IS} />
+                  <input type="date" value={form.date} onChange={e => { setForm(f => ({ ...f, date: e.target.value })); setWfe(f => ({ ...f, date: '' })); }} style={{ ...IS, borderColor: wfe.date ? '#EF4444' : undefined }} />
+                  {wfe.date && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{wfe.date}</div>}
                 </div>
                 <div>
                   {LBL('Time', true)}
-                  <input type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} style={IS} />
+                  <input type="time" value={form.time} onChange={e => { setForm(f => ({ ...f, time: e.target.value })); setWfe(f => ({ ...f, time: '' })); }} style={{ ...IS, borderColor: wfe.time ? '#EF4444' : undefined }} />
+                  {wfe.time && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{wfe.time}</div>}
                 </div>
               </div>
 
@@ -1018,8 +1104,9 @@ function SessionsView() {
               {/* Link */}
               <div>
                 {LBL('Meeting / Join Link', true)}
-                <input value={form.link} onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
-                  placeholder="https://meet.google.com/…" style={IS} />
+                <input value={form.link} onChange={e => { setForm(f => ({ ...f, link: e.target.value })); setWfe(f => ({ ...f, link: '' })); }}
+                  placeholder="https://meet.google.com/…" style={{ ...IS, borderColor: wfe.link ? '#EF4444' : undefined }} />
+                {wfe.link && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{wfe.link}</div>}
               </div>
 
               {/* Pricing */}
@@ -1034,8 +1121,11 @@ function SessionsView() {
                   ))}
                 </div>
                 {!form.isFree && (
-                  <input type="number" min={0} value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                    placeholder="Price in ₹ (e.g. 99)" style={IS} />
+                  <>
+                    <input type="number" min={0} value={form.price} onChange={e => { setForm(f => ({ ...f, price: e.target.value })); setWfe(f => ({ ...f, price: '' })); }}
+                      placeholder="Price in ₹ (e.g. 99)" style={{ ...IS, borderColor: wfe.price ? '#EF4444' : undefined }} />
+                    {wfe.price && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontWeight: 500 }}>{wfe.price}</div>}
+                  </>
                 )}
               </div>
 
@@ -1054,21 +1144,62 @@ function SessionsView() {
 
 /* ─── Payouts view ─── */
 function PayoutsView() {
-  const payouts = [
-    { mentor: 'Priya Nair',   amount: '₹18,400', sessions: 15, status: 'Processed', date: '01 Jun 2025' },
-    { mentor: 'Aarav Sharma', amount: '₹11,970', sessions: 10, status: 'Processed', date: '01 Jun 2025' },
-    { mentor: 'Rahul Verma',  amount: '₹7,190',  sessions: 6,  status: 'Pending',   date: '—' },
-    { mentor: 'Sneha Singh',  amount: '₹4,790',  sessions: 4,  status: 'Pending',   date: '—' },
-  ];
+  const [transactions, setTransactions] = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [total,        setTotal]        = useState(0);
+  const [search,       setSearch]       = useState('');
+  const [status,       setStatus]       = useState('success');
+  const [startDate,    setStartDate]    = useState('');
+  const [endDate,      setEndDate]      = useState('');
+  const LIMIT = 100;
+
+  const money = (n) => '₹' + Number(n).toLocaleString('en-IN');
+
+  const loadTransactions = async () => {
+    setLoading(true);
+    try {
+      const params = { page: 1, limit: LIMIT, formType: 'mentorbooking' };
+      if (search.trim()) params.search    = search.trim();
+      if (status)        params.status    = status;
+      if (startDate)     params.startDate = startDate;
+      if (endDate)       params.endDate   = endDate;
+      const res   = await httpService.get('/transaction/admin/list', { params, token: true });
+      const rows  = res?.data?.rows ?? [];
+      const count = res?.data?.count ?? 0;
+      setTransactions(rows);
+      setTotal(count);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadTransactions(); }, []); // eslint-disable-line
+
+  /* group by authUserId → per-mentor totals */
+  const mentorMap = {};
+  transactions.forEach(t => {
+    const key = t.authUserId;
+    if (!mentorMap[key]) {
+      mentorMap[key] = { authUserId: key, mentor: t.authUser, sessions: 0, totalAmount: 0, latestDate: t.createdAt, txns: [] };
+    }
+    mentorMap[key].sessions++;
+    mentorMap[key].totalAmount += Number(t.amount) || 0;
+    if (new Date(t.createdAt) > new Date(mentorMap[key].latestDate)) mentorMap[key].latestDate = t.createdAt;
+    mentorMap[key].txns.push(t);
+  });
+  const mentorRows = Object.values(mentorMap).sort((a, b) => b.totalAmount - a.totalAmount);
+  const totalGMV   = transactions.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  const PLATFORM_PCT = import.meta.env.VITE_PLATFORM_FEE_PERCENTAGE || 10;
+
   return (
     <div>
       {/* summary hero */}
       <div className="payout-hero">
         {[
-          { v: '₹42,350', l: 'Paid this month', ic: '💳', cls: 'b-green'  },
-          { v: '₹11,980', l: 'Pending payouts', ic: '⏳', cls: 'b-amber'  },
-          { v: '₹2.4Cr',  l: 'All-time GMV',    ic: '📈', cls: 'b-indigo' },
-          { v: '12%',     l: 'Platform cut',    ic: '🏷',  cls: 'b-gray'   },
+          { v: money(totalGMV),          l: 'Total collected',  ic: '💳', cls: 'b-green'  },
+          { v: mentorRows.length,        l: 'Mentors earning',  ic: '👨‍🏫', cls: 'b-indigo' },
+          { v: total,                    l: 'Total transactions',ic: '📈', cls: 'b-amber'  },
+          { v: `${PLATFORM_PCT}%`,       l: 'Platform cut',     ic: '🏷',  cls: 'b-gray'   },
         ].map(k => (
           <div className="stat-card" key={k.l}>
             <div className="sc-ic" style={{ background: 'var(--bg-tint)', fontSize: 20 }}>{k.ic}</div>
@@ -1078,38 +1209,124 @@ function PayoutsView() {
         ))}
       </div>
 
-      {/* filter bar */}
-      <div className="filter-bar">
-        <div className="seg-row">
-          {['All', 'Pending', 'Processed'].map(f => (
-            <button key={f} className="chip">{f}</button>
-          ))}
+      {/* filter panel */}
+      <div className="adm-fp">
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Filters
+          </div>
+          {(search || startDate || endDate || status !== 'success') && (
+            <div className="adm-fp-actions">
+              <span className="adm-fp-badge">
+                {[status !== 'success', !!startDate, !!endDate, !!search.trim()].filter(Boolean).length} active
+              </span>
+              <button className="adm-fp-clear" onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); setStatus('success'); }}>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
-        <button className="btn btn-soft btn-sm" style={{ marginLeft: 'auto' }}>Pay all pending</button>
-        <div className="fb-search">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          <input type="text" placeholder="Search mentor…" />
+        <div className="adm-fp-row" style={{ alignItems: 'flex-end' }}>
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Payment Status</div>
+            <div className="adm-fp-chips">
+              {[['success','Success'],['pending','Pending'],['failed','Failed'],['','All']].map(([v,lbl]) => (
+                <button key={lbl} className={`chip${status === v ? ' active' : ''}`} onClick={() => setStatus(v)}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          <div className="adm-fp-divider" />
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Date Range</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="adm-date-input" title="From date" />
+              <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 600 }}>to</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="adm-date-input" title="To date" />
+              <button className="adm-fp-apply" onClick={loadTransactions} disabled={loading}>
+                {loading
+                  ? <><svg viewBox="0 0 24 24" fill="none" width="13" height="13"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.4)" strokeWidth="2"/><path d="M12 3a9 9 0 019 9" stroke="#fff" strokeWidth="2" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>Loading</>
+                  : <><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M10 12h4M6 18h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Apply</>
+                }
+              </button>
+            </div>
+          </div>
+          <div className="adm-fp-group" style={{ marginLeft: 'auto' }}>
+            <div className="adm-fp-label">Search</div>
+            <div className="adm-fp-search">
+              <svg className="sp-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              <input type="text" placeholder="Transaction ID…" value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadTransactions()} />
+              {search && <button className="sp-clear" onClick={() => setSearch('')}>×</button>}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* table */}
-      <div className="d-table-wrap">
-        <table className="d-table">
-          <thead><tr><th>Mentor</th><th>Sessions</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr></thead>
-          <tbody>
-            {payouts.map((p, i) => (
-              <tr key={i}>
-                <td><div className="u-cell"><div className="u-av" style={{ background: nameColorAd(p.mentor) }}>{p.mentor.split(' ').map(w=>w[0]).join('').slice(0,2)}</div><div className="u-n">{p.mentor}</div></div></td>
-                <td>{p.sessions}</td>
-                <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15 }}>{p.amount}</span></td>
-                <td><StatusPill s={p.status} /></td>
-                <td>{p.date}</td>
-                <td><div className="row-actions">{p.status === 'Pending' && <button className="ra good">Pay now</button>}</div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* per-mentor summary table */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>Loading…</div>
+      ) : (
+        <>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>Mentor</th>
+                  <th>Sessions</th>
+                  <th>Total Collected</th>
+                  <th>Last Transaction</th>
+                  <th>Recent TXN IDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mentorRows.length === 0 ? (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-3)' }}>No transactions found.</td></tr>
+                ) : mentorRows.map(m => {
+                  const fullName = `${m.mentor?.firstName || ''} ${m.mentor?.lastName || ''}`.trim() || `Mentor #${m.authUserId}`;
+                  return (
+                    <tr key={m.authUserId}>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(fullName) }}>{initialsAd(m.mentor?.firstName, m.mentor?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{fullName}</div>
+                            <div className="u-e">{m.mentor?.email || m.mentor?.contact || '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="badge b-indigo">{m.sessions}</span></td>
+                      <td>
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: '#10B981' }}>
+                          {money(m.totalAmount)}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>{fmtDateAd(m.latestDate)}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {m.txns.slice(0, 2).map(t => (
+                            <span key={t.id} style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'monospace' }}>
+                              {t.transactionId} · {money(t.amount)}
+                            </span>
+                          ))}
+                          {m.txns.length > 2 && (
+                            <span style={{ fontSize: 11, color: 'var(--indigo)', fontStyle: 'italic' }}>+{m.txns.length - 2} more</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {total > 0 && (
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 10, textAlign: 'right' }}>
+              {total} total transaction{total !== 1 ? 's' : ''} (showing {transactions.length})
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1133,6 +1350,7 @@ function JobsView() {
   const [editJob,    setEditJob]    = useState(null);     // job object being edited
   const [tagInput,   setTagInput]   = useState({ techStack: '', qualification: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [fe,         setFe]         = useState({});
 
   const isEditing = editJob !== null;
   const jobId     = (job) => job?._id ?? job?.id ?? null;
@@ -1166,6 +1384,7 @@ function JobsView() {
     setForm(EMPTY);
     setTagInput({ techStack: '', qualification: '' });
     setView('list');
+    setFe({});
   };
 
   const buildPayload = () => ({
@@ -1190,6 +1409,16 @@ function JobsView() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errs = {};
+    if (!form.companyName.trim()) errs.companyName = 'Company name is required.';
+    if (!form.position.trim())    errs.position    = 'Position / Role is required.';
+    if (form.email   && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
+      errs.email   = 'Enter a valid email address.';
+    if (form.contact && !/^\d{10}$/.test(form.contact.replace(/\D/g, '')))
+      errs.contact = 'Enter a valid 10-digit contact number.';
+    if (Number(form.noOfPosition) < 1) errs.noOfPosition = 'Must be at least 1.';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({});
     setSubmitting(true);
     try {
       const payload = buildPayload();
@@ -1298,13 +1527,13 @@ function JobsView() {
       {view === 'form' && (
         <form onSubmit={handleSubmit} className="card" style={{ padding: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18, marginBottom: 18 }}>
-            <div style={fieldStyle}><label style={labelStyle}>Company Name *</label><input style={inStyle} name="companyName" value={form.companyName} onChange={handleChange} placeholder="e.g. Mixins Technology" required /></div>
-            <div style={fieldStyle}><label style={labelStyle}>Position / Role *</label><input style={inStyle} name="position" value={form.position} onChange={handleChange} placeholder="e.g. Full Stack Developer" required /></div>
+            <div style={fieldStyle}><label style={labelStyle}>Company Name *</label><input style={{ ...inStyle, borderColor: fe.companyName ? '#EF4444' : '' }} name="companyName" value={form.companyName} onChange={e => { handleChange(e); setFe(f => ({ ...f, companyName: '' })); }} placeholder="e.g. Mixins Technology" required />{fe.companyName && <span style={{ color: '#EF4444', fontSize: 11.5, marginTop: 2, fontWeight: 500 }}>{fe.companyName}</span>}</div>
+            <div style={fieldStyle}><label style={labelStyle}>Position / Role *</label><input style={{ ...inStyle, borderColor: fe.position ? '#EF4444' : '' }} name="position" value={form.position} onChange={e => { handleChange(e); setFe(f => ({ ...f, position: '' })); }} placeholder="e.g. Full Stack Developer" required />{fe.position && <span style={{ color: '#EF4444', fontSize: 11.5, marginTop: 2, fontWeight: 500 }}>{fe.position}</span>}</div>
             <div style={fieldStyle}><label style={labelStyle}>Location</label><input style={inStyle} name="location" value={form.location} onChange={handleChange} placeholder="e.g. Pune, Maharashtra" /></div>
             <div style={fieldStyle}><label style={labelStyle}>Hiring Person Name</label><input style={inStyle} name="hiringPersonName" value={form.hiringPersonName} onChange={handleChange} placeholder="e.g. Dharmendra Patel" /></div>
-            <div style={fieldStyle}><label style={labelStyle}>Contact Number</label><input style={inStyle} name="contact" value={form.contact} onChange={handleChange} placeholder="e.g. 9876543210" type="tel" /></div>
-            <div style={fieldStyle}><label style={labelStyle}>Contact Email</label><input style={inStyle} name="email" value={form.email} onChange={handleChange} placeholder="e.g. hr@company.com" type="email" /></div>
-            <div style={fieldStyle}><label style={labelStyle}>No. of Positions</label><input style={inStyle} name="noOfPosition" value={form.noOfPosition} onChange={handleChange} type="number" min="1" /></div>
+            <div style={fieldStyle}><label style={labelStyle}>Contact Number</label><input style={{ ...inStyle, borderColor: fe.contact ? '#EF4444' : '' }} name="contact" value={form.contact} onChange={e => { handleChange(e); setFe(f => ({ ...f, contact: '' })); }} placeholder="e.g. 9876543210" type="tel" />{fe.contact && <span style={{ color: '#EF4444', fontSize: 11.5, marginTop: 2, fontWeight: 500 }}>{fe.contact}</span>}</div>
+            <div style={fieldStyle}><label style={labelStyle}>Contact Email</label><input style={{ ...inStyle, borderColor: fe.email ? '#EF4444' : '' }} name="email" value={form.email} onChange={e => { handleChange(e); setFe(f => ({ ...f, email: '' })); }} placeholder="e.g. hr@company.com" type="email" />{fe.email && <span style={{ color: '#EF4444', fontSize: 11.5, marginTop: 2, fontWeight: 500 }}>{fe.email}</span>}</div>
+            <div style={fieldStyle}><label style={labelStyle}>No. of Positions</label><input style={{ ...inStyle, borderColor: fe.noOfPosition ? '#EF4444' : '' }} name="noOfPosition" value={form.noOfPosition} onChange={e => { handleChange(e); setFe(f => ({ ...f, noOfPosition: '' })); }} type="number" min="1" />{fe.noOfPosition && <span style={{ color: '#EF4444', fontSize: 11.5, marginTop: 2, fontWeight: 500 }}>{fe.noOfPosition}</span>}</div>
             <div style={fieldStyle}><label style={labelStyle}>Experience Required</label><input style={inStyle} name="experienceRequired" value={form.experienceRequired} onChange={handleChange} placeholder="e.g. 0-1 year" /></div>
             <div style={fieldStyle}><label style={labelStyle}>Job Type</label><select style={inStyle} name="jobType" value={form.jobType} onChange={handleChange}><option value="full">Full-time</option><option value="internship">Internship</option><option value="part">Part-time</option><option value="contract">Contract</option></select></div>
             <div style={fieldStyle}><label style={labelStyle}>Job Category</label><select style={inStyle} name="jobCategory" value={form.jobCategory} onChange={handleChange}><option value="private">Private</option><option value="government">Government</option><option value="startup">Startup</option><option value="mnc">MNC</option></select></div>
@@ -1443,59 +1672,56 @@ function JobsView() {
 }
 
 /* ─── Feedback & Ratings ─── */
-
-const REVIEW_DATA = [
-  { sid:'DN', sname:'Diya Nair',    slevel:'Working pro', sbg:'#6366F1', mid:'RJ', mname:'Rohan Joshi',   mbg:'#8B5CF6', stars:2, comment:'Audio kept cutting and session felt wasted.',              when:'9d ago'  },
-  { sid:'MD', sname:'Manav Das',    slevel:'3rd year',    sbg:'#10B981', mid:'VV', mname:'Vikram Verma',  mbg:'#14B8A6', stars:5, comment:'Explained everything so clearly, finally understood it.',  when:'11d ago' },
-  { sid:'MR', sname:'Meera Roy',    slevel:'3rd year',    sbg:'#22C55E', mid:'AN', mname:'Ananya Nair',   mbg:'#10B981', stars:4, comment:'Explained everything so clearly, finally understood it.',  when:'19d ago' },
-  { sid:'VJ', sname:'Veer Joshi',   slevel:'2nd year',    sbg:'#8B5CF6', mid:'VB', mname:'Veer Banerjee', mbg:'#4F46E5', stars:4, comment:'Explained everything so clearly, finally understood it.',  when:'23d ago' },
-  { sid:'IR', sname:'Ira Roy',      slevel:'Graduate',    sbg:'#EF4444', mid:'RP', mname:'Rahul Pillai',  mbg:'#6366F1', stars:1, comment:'Felt unprepared and kept checking the time.',              when:'27d ago' },
-  { sid:'RS', sname:'Rohan Shah',   slevel:'Graduate',    sbg:'#14B8A6', mid:'VP', mname:'Vikram Patel',  mbg:'#6366F1', stars:2, comment:'Generic advice, nothing specific to my profile.',          when:'1mo ago' },
-  { sid:'RS', sname:'Riya Shah',    slevel:'Working pro', sbg:'#EC4899', mid:'TP', mname:'Tara Pillai',   mbg:'#4F46E5', stars:4, comment:'Got actionable feedback I could use right away.',          when:'1mo ago' },
-  { sid:'KR', sname:'Karan Rao',    slevel:'3rd year',    sbg:'#F97316', mid:'VP', mname:'Vikram Patel',  mbg:'#6366F1', stars:1, comment:'Audio kept cutting and session felt wasted.',              when:'1mo ago' },
-  { sid:'AA', sname:'Arjun Ahuja',  slevel:'Working pro', sbg:'#6366F1', mid:'NK', mname:'Neha Kumar',    mbg:'#EC4899', stars:5, comment:'Best mentoring session I have had in years.',              when:'2mo ago' },
-  { sid:'PG', sname:'Priya Gupta',  slevel:'1st year',    sbg:'#10B981', mid:'RJ', mname:'Rohan Joshi',   mbg:'#8B5CF6', stars:3, comment:'Session was okay but could be more focused.',             when:'2mo ago' },
-  { sid:'SB', sname:'Sneha Bhat',   slevel:'2nd year',    sbg:'#F59E0B', mid:'VB', mname:'Veer Banerjee', mbg:'#4F46E5', stars:5, comment:'Absolutely loved the structured approach.',               when:'2mo ago' },
-  { sid:'RM', sname:'Rohan Mehta',  slevel:'Graduate',    sbg:'#6366F1', mid:'AN', mname:'Ananya Nair',   mbg:'#10B981', stars:2, comment:'Questions were deflected instead of answered.',           when:'2mo ago' },
-  { sid:'NK', sname:'Nidhi Kapoor', slevel:'3rd year',    sbg:'#14B8A6', mid:'TP', mname:'Tara Pillai',   mbg:'#4F46E5', stars:5, comment:'The mentor went above and beyond to help.',               when:'3mo ago' },
-  { sid:'AS', sname:'Aditya Sen',   slevel:'Working pro', sbg:'#EC4899', mid:'RP', mname:'Rahul Pillai',  mbg:'#6366F1', stars:4, comment:'Very insightful and practical advice.',                   when:'3mo ago' },
-  { sid:'DK', sname:'Divya Kaur',   slevel:'1st year',    sbg:'#8B5CF6', mid:'VV', mname:'Vikram Verma',  mbg:'#14B8A6', stars:1, comment:'Felt like reading from a script, no real guidance.',      when:'3mo ago' },
-  { sid:'MM', sname:'Mohit Mishra', slevel:'2nd year',    sbg:'#10B981', mid:'RJ', mname:'Rohan Joshi',   mbg:'#8B5CF6', stars:3, comment:'Decent session but lacked depth on key topics.',          when:'3mo ago' },
-  { sid:'SJ', sname:'Shreya Jain',  slevel:'Graduate',    sbg:'#F97316', mid:'NK', mname:'Neha Kumar',    mbg:'#EC4899', stars:4, comment:'She really understood my situation and helped clearly.',   when:'3mo ago' },
-  { sid:'VP', sname:'Vishal Pal',   slevel:'Working pro', sbg:'#6366F1', mid:'VB', mname:'Veer Banerjee', mbg:'#4F46E5', stars:5, comment:'Outstanding mentor, highly recommend to everyone.',        when:'4mo ago' },
-  { sid:'TS', sname:'Tanvi Sharma', slevel:'3rd year',    sbg:'#14B8A6', mid:'VP', mname:'Vikram Patel',  mbg:'#6366F1', stars:2, comment:'Seemed distracted throughout the entire session.',        when:'4mo ago' },
-  { sid:'KP', sname:'Kabir Patel',  slevel:'1st year',    sbg:'#EC4899', mid:'AN', mname:'Ananya Nair',   mbg:'#10B981', stars:4, comment:'Super helpful and well-structured guidance.',              when:'4mo ago' },
-  { sid:'RN', sname:'Rita Nair',    slevel:'Graduate',    sbg:'#8B5CF6', mid:'TP', mname:'Tara Pillai',   mbg:'#4F46E5', stars:1, comment:'No roadmap given, just very generic suggestions.',         when:'4mo ago' },
-  { sid:'VK', sname:'Vivek Kumar',  slevel:'2nd year',    sbg:'#F59E0B', mid:'RP', mname:'Rahul Pillai',  mbg:'#6366F1', stars:5, comment:'Transformed my career outlook completely.',               when:'5mo ago' },
-];
-
 function FeedbackView() {
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
-  const [page,   setPage]   = useState(1);
-  const PER = 8;
+  const [sessions, setSessions] = useState([]);
+  const [loading,  setLoading]  = useState(false);
+  const [filter,   setFilter]   = useState('all');
+  const [search,   setSearch]   = useState('');
+  const [page,     setPage]     = useState(1);
+  const [total,    setTotal]    = useState(0);
+  const LIMIT = 10;
 
-  const filtered = REVIEW_DATA.filter(r => {
-    if (filter === 'negative' && r.stars > 2) return false;
-    if (filter === 'positive' && r.stars < 4) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (!r.sname.toLowerCase().includes(q) && !r.mname.toLowerCase().includes(q)) return false;
+  const loadSessions = async (pg = 1) => {
+    setLoading(true);
+    try {
+      const res   = await httpService.get('/mentorSession/sessions', {
+        params: { page: pg, limit: LIMIT },
+        token: true,
+      });
+      const inner = res?.data;
+      const data  = Array.isArray(inner?.data) ? inner.data : [];
+      setSessions(data);
+      setTotal(inner?.total ?? 0);
+      setPage(pg);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadSessions(1); }, []); // eslint-disable-line
+
+  const filtered = sessions.filter(s => {
+    if (filter === 'positive'  && (s.rating ?? 0) < 4) return false;
+    if (filter === 'negative'  && (s.rating ?? 0) > 2) return false;
+    if (filter === 'no-rating' && s.rating != null)     return false;
+    if (search.trim()) {
+      const q       = search.toLowerCase();
+      const mentor  = `${s.authUser?.firstName || ''} ${s.authUser?.lastName || ''}`.toLowerCase();
+      const student = `${s.user?.firstName    || ''} ${s.user?.lastName    || ''}`.toLowerCase();
+      if (!mentor.includes(q) && !student.includes(q)) return false;
     }
     return true;
   });
 
-  const totalPages = Math.ceil(filtered.length / PER);
-  const paged      = filtered.slice((page - 1) * PER, page * PER);
-
-  const avg  = (REVIEW_DATA.reduce((s, r) => s + r.stars, 0) / REVIEW_DATA.length).toFixed(2);
-  const neg  = REVIEW_DATA.filter(r => r.stars <= 2).length;
-  const five = REVIEW_DATA.filter(r => r.stars === 5).length;
+  const rated      = sessions.filter(s => s.rating != null);
+  const avg        = rated.length ? (rated.reduce((a, s) => a + s.rating, 0) / rated.length).toFixed(1) : '—';
+  const neg        = sessions.filter(s => s.rating != null && s.rating <= 2).length;
+  const five       = sessions.filter(s => s.rating === 5).length;
+  const totalPages = Math.ceil(total / LIMIT);
 
   const Stars = ({ n }) => (
     <span style={{ display: 'flex', gap: 2 }}>
       {[1,2,3,4,5].map(i => (
-        <svg key={i} viewBox="0 0 24 24" width="15" height="15"
+        <svg key={i} viewBox="0 0 24 24" width="14" height="14"
           fill={i <= n ? '#F59E0B' : 'none'}
           stroke={i <= n ? '#F59E0B' : '#D1D5DB'}
           strokeWidth="1.8">
@@ -1510,10 +1736,10 @@ function FeedbackView() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 }}>
         {[
-          { n: avg,                    l: 'Average rating',  col: 'var(--ink)' },
-          { n: REVIEW_DATA.length,     l: 'Total reviews',   col: 'var(--ink)' },
-          { n: neg,                    l: 'Negative (1–2★)', col: '#DC2626'    },
-          { n: five,                   l: '5★ reviews',      col: '#10B981'    },
+          { n: avg,   l: 'Average rating',  col: 'var(--ink)' },
+          { n: total, l: 'Total sessions',  col: 'var(--ink)' },
+          { n: neg,   l: 'Negative (1–2★)', col: '#DC2626'    },
+          { n: five,  l: '5★ reviews',      col: '#10B981'    },
         ].map(s => (
           <div key={s.l} className="panel" style={{ padding: '20px 22px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, color: s.col, lineHeight: 1, marginBottom: 6 }}>{s.n}</div>
@@ -1522,80 +1748,164 @@ function FeedbackView() {
         ))}
       </div>
 
-      {/* Filter bar */}
-      <div className="filter-bar">
-        <div className="seg-row">
-          {[['all','All reviews'],['negative','Negative (1–2★)'],['positive','Positive (4–5★)']].map(([v,lbl]) => (
-            <button key={v} className={`chip${filter===v?' active':''}`}
-              onClick={() => { setFilter(v); setPage(1); }}>{lbl}</button>
-          ))}
+      {/* Filter panel */}
+      <div className="adm-fp">
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Filters
+          </div>
+          {(filter !== 'all' || search.trim()) && (
+            <div className="adm-fp-actions">
+              <span className="adm-fp-badge">{[filter !== 'all', !!search.trim()].filter(Boolean).length} active</span>
+              <button className="adm-fp-clear" onClick={() => { setFilter('all'); setSearch(''); }}>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
-        <div className="fb-search">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search mentor, student..."/>
+        <div className="adm-fp-row">
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Rating</div>
+            <div className="adm-fp-chips">
+              {[
+                ['all', 'All'],
+                ['negative', 'Negative (1–2★)'],
+                ['positive', 'Positive (4–5★)'],
+                ['no-rating', 'No rating'],
+              ].map(([v, lbl]) => (
+                <button key={v} className={`chip${filter === v ? ' active' : ''}`} onClick={() => setFilter(v)}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          <div className="adm-fp-group" style={{ marginLeft: 'auto' }}>
+            <div className="adm-fp-label">Search</div>
+            <div className="adm-fp-search">
+              <svg className="sp-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Mentor, student…" />
+              {search && <button className="sp-clear" onClick={() => setSearch('')}>×</button>}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="d-table-wrap">
-        <table className="d-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Mentor</th>
-              <th>Rating</th>
-              <th style={{ minWidth: 220 }}>Comment</th>
-              <th>When</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.map((r, i) => {
-              const isNeg = r.stars <= 2;
-              return (
-                <tr key={i} style={{ background: isNeg ? '#FFF7F7' : undefined }}>
-                  <td style={{ position: 'relative', paddingLeft: isNeg ? 22 : undefined }}>
-                    {isNeg && (
-                      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#EF4444', borderRadius: '2px 0 0 2px' }}/>
-                    )}
-                    <div className="u-cell">
-                      <div className="u-av" style={{ background: r.sbg }}>{r.sid}</div>
-                      <div className="u-n"><b>{r.sname}</b><span>{r.slevel}</span></div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="u-cell">
-                      <div className="u-av" style={{ background: r.mbg }}>{r.mid}</div>
-                      <div className="u-n"><b>{r.mname}</b></div>
-                    </div>
-                  </td>
-                  <td><Stars n={r.stars}/></td>
-                  <td style={{ color: isNeg ? '#C2410C' : 'var(--ink-2)', fontStyle: 'italic', maxWidth: 260, fontSize: 13 }}>
-                    "{r.comment}"
-                  </td>
-                  <td style={{ color: 'var(--ink-3)', fontSize: 13, whiteSpace: 'nowrap' }}>{r.when}</td>
-                  <td>
-                    <div className="row-actions" style={{ flexDirection: 'column', gap: 5, alignItems: 'stretch' }}>
-                      <button className="ra">Flag</button>
-                      <button className="ra danger">Delete</button>
-                    </div>
-                  </td>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>Loading sessions…</div>
+      ) : (
+        <>
+          <div className="d-table-wrap">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Mentor</th>
+                  <th>Ratings</th>
+                  <th style={{ minWidth: 220 }}>Feedback</th>
+                  <th>Date & Time</th>
+                  <th>Amount</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-3)' }}>
+                      No sessions match the current filter.
+                    </td>
+                  </tr>
+                ) : filtered.map(s => {
+                  const isNeg       = s.rating != null && s.rating <= 2;
+                  const mentorName  = `${s.authUser?.firstName || ''} ${s.authUser?.lastName || ''}`.trim() || '—';
+                  const studentName = `${s.user?.firstName    || ''} ${s.user?.lastName    || ''}`.trim() || '—';
+                  return (
+                    <tr key={s.id} style={{ background: isNeg ? '#FFF7F7' : undefined }}>
+                      {/* Student */}
+                      <td style={{ position: 'relative', paddingLeft: isNeg ? 22 : undefined }}>
+                        {isNeg && <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#EF4444', borderRadius: '2px 0 0 2px' }} />}
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(studentName) }}>{initialsAd(s.user?.firstName, s.user?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{studentName}</div>
+                            <div className="u-e">{s.user?.email || s.user?.contact || '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Mentor */}
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(mentorName) }}>{initialsAd(s.authUser?.firstName, s.authUser?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{mentorName}</div>
+                            <div className="u-e">{s.authUser?.email || '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Ratings */}
+                      <td>
+                        {s.rating != null ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <Stars n={s.rating} />
+                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)' }}>{s.rating}/5</span>
+                            </div>
+                            {s.behaviorRating      != null && <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Behaviour {s.behaviorRating}★</span>}
+                            {s.communicationRating != null && <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Comm {s.communicationRating}★</span>}
+                            {s.platformRating      != null && <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Platform {s.platformRating}★</span>}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 12, color: 'var(--ink-3)', fontStyle: 'italic' }}>No rating</span>
+                        )}
+                      </td>
+                      {/* Feedback */}
+                      <td style={{ maxWidth: 260 }}>
+                        {s.userFeedback && (
+                          <div style={{ marginBottom: s.mentorFeedback ? 6 : 0 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Student</span>
+                            <span style={{ fontSize: 13, color: isNeg ? '#C2410C' : 'var(--ink-2)', fontStyle: 'italic' }}>"{s.userFeedback}"</span>
+                          </div>
+                        )}
+                        {s.mentorFeedback && (
+                          <div>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Mentor</span>
+                            <span style={{ fontSize: 13, color: 'var(--ink-2)', fontStyle: 'italic' }}>"{s.mentorFeedback}"</span>
+                          </div>
+                        )}
+                        {!s.userFeedback && !s.mentorFeedback && (
+                          <span style={{ fontSize: 12, color: 'var(--ink-3)', fontStyle: 'italic' }}>No feedback</span>
+                        )}
+                      </td>
+                      {/* Date */}
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>{s.date || '—'}</div>
+                        {s.time && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{s.time}</div>}
+                      </td>
+                      {/* Amount */}
+                      <td>
+                        {s.amount != null
+                          ? <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>₹{s.amount}</span>
+                          : <span style={{ color: 'var(--ink-3)' }}>—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Pagination */}
-      <div className="pager">
-        <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1}>←</button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-          <button key={p} className={page === p ? 'active' : ''} onClick={() => setPage(p)}>{p}</button>
-        ))}
-        <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page === totalPages}>→</button>
-        <span className="pg-info">{(page-1)*PER+1}–{Math.min(page*PER, filtered.length)} of {filtered.length}</span>
-      </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pager">
+              <button onClick={() => loadSessions(page - 1)} disabled={page === 1 || loading}>←</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button key={p} className={page === p ? 'active' : ''} onClick={() => loadSessions(p)}>{p}</button>
+              ))}
+              <button onClick={() => loadSessions(page + 1)} disabled={page >= totalPages || loading}>→</button>
+              <span className="pg-info">{(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)} of {total}</span>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1757,71 +2067,75 @@ function AdminTicketsView() {
         ))}
       </div>
 
-      {/* ── filter bar ── */}
-      <div style={{ background: '#F8FAFC', border: '1.5px solid var(--border)', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
-        {/* search row */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
-            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style={{ color: 'var(--ink-3)', flexShrink: 0 }}><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email, title, ticket code…"
-              style={{ border: 'none', outline: 'none', fontSize: 14, color: 'var(--ink)', background: 'transparent', width: '100%', fontFamily: 'var(--font-body)' }} />
-            {search && (
-              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
-            )}
+      {/* ── filter panel ── */}
+      <div className="adm-fp">
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Filters
           </div>
-          {(statusFilter !== 'all' || priorityFilter !== 'all' || search) && (
-            <button onClick={() => { setStatusFilter('all'); setPriorityFilter('all'); setSearch(''); }}
-              style={{ padding: '8px 14px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-              Clear filters
-            </button>
+          {(statusFilter !== 'all' || priorityFilter !== 'all' || search.trim()) && (
+            <div className="adm-fp-actions">
+              <span className="adm-fp-badge">
+                {[statusFilter !== 'all', priorityFilter !== 'all', !!search.trim()].filter(Boolean).length} active
+              </span>
+              <button className="adm-fp-clear" onClick={() => { setStatusFilter('all'); setPriorityFilter('all'); setSearch(''); }}>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                Clear all
+              </button>
+            </div>
           )}
         </div>
-
-        {/* status pills */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Status</div>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {/* All pill */}
-            <button onClick={() => setStatusFilter('all')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 99, border: `1.5px solid ${statusFilter === 'all' ? '#4F46E5' : 'var(--border)'}`, background: statusFilter === 'all' ? '#EEF2FF' : '#fff', color: statusFilter === 'all' ? '#4F46E5' : 'var(--ink-2)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
-              All
-              <span style={{ background: statusFilter === 'all' ? '#4F46E5' : '#E2E8F0', color: statusFilter === 'all' ? '#fff' : 'var(--ink-3)', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99 }}>{statusCounts.all}</span>
-            </button>
-            {TICKET_STATUS_KEYS.map(k => {
-              const cfg = TICKET_STATUS_CFG[k];
-              const active = statusFilter === k;
-              return (
-                <button key={k} onClick={() => setStatusFilter(k)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 99, border: `1.5px solid ${active ? cfg.col : 'var(--border)'}`, background: active ? cfg.bg : '#fff', color: active ? cfg.col : 'var(--ink-2)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
-                  {cfg.label}
-                  <span style={{ background: active ? cfg.col : '#E2E8F0', color: active ? '#fff' : 'var(--ink-3)', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99 }}>{statusCounts[k] || 0}</span>
-                </button>
-              );
-            })}
+        <div className="adm-fp-row" style={{ rowGap: 14 }}>
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Status</div>
+            <div className="adm-fp-chips">
+              <button className={`chip${statusFilter === 'all' ? ' active' : ''}`} onClick={() => setStatusFilter('all')}>
+                All <span className="c-badge">{statusCounts.all}</span>
+              </button>
+              {TICKET_STATUS_KEYS.map(k => {
+                const cfg    = TICKET_STATUS_CFG[k];
+                const active = statusFilter === k;
+                return (
+                  <button key={k}
+                    className={`chip${active ? ' active' : ''}`}
+                    style={active ? { background: cfg.bg, color: cfg.col, borderColor: cfg.col, transform: 'translateY(-1px)', boxShadow: `0 4px 14px ${cfg.col}33` } : {}}
+                    onClick={() => setStatusFilter(k)}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                    {cfg.label}
+                    <span className="c-badge">{statusCounts[k] || 0}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-
-        {/* priority pills */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Priority</div>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            <button onClick={() => setPriorityFilter('all')}
-              style={{ padding: '6px 13px', borderRadius: 99, border: `1.5px solid ${priorityFilter === 'all' ? '#4F46E5' : 'var(--border)'}`, background: priorityFilter === 'all' ? '#EEF2FF' : '#fff', color: priorityFilter === 'all' ? '#4F46E5' : 'var(--ink-2)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
-              All
-            </button>
-            {['high','medium','low'].map(k => {
-              const cfg = TICKET_PRIORITY_CFG[k];
-              const active = priorityFilter === k;
-              return (
-                <button key={k} onClick={() => setPriorityFilter(k)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 99, border: `1.5px solid ${active ? cfg.col : 'var(--border)'}`, background: active ? cfg.bg : '#fff', color: active ? cfg.col : 'var(--ink-2)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
-                  {cfg.label}
-                  <span style={{ background: active ? cfg.col : '#E2E8F0', color: active ? '#fff' : 'var(--ink-3)', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99 }}>{priorityCounts[k] || 0}</span>
-                </button>
-              );
-            })}
+          <div className="adm-fp-divider" />
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">Priority</div>
+            <div className="adm-fp-chips">
+              <button className={`chip${priorityFilter === 'all' ? ' active' : ''}`} onClick={() => setPriorityFilter('all')}>All</button>
+              {['high','medium','low'].map(k => {
+                const cfg    = TICKET_PRIORITY_CFG[k];
+                const active = priorityFilter === k;
+                return (
+                  <button key={k}
+                    className={`chip${active ? ' active' : ''}`}
+                    style={active ? { background: cfg.bg, color: cfg.col, borderColor: cfg.col, transform: 'translateY(-1px)', boxShadow: `0 4px 14px ${cfg.col}33` } : {}}
+                    onClick={() => setPriorityFilter(k)}>
+                    {cfg.label}
+                    <span className="c-badge">{priorityCounts[k] || 0}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="adm-fp-group" style={{ marginLeft: 'auto' }}>
+            <div className="adm-fp-label">Search</div>
+            <div className="adm-fp-search">
+              <svg className="sp-icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, email, title, code…" style={{ width: 260 }} />
+              {search && <button className="sp-clear" onClick={() => setSearch('')}>×</button>}
+            </div>
           </div>
         </div>
       </div>
@@ -2260,6 +2574,1037 @@ function countByMonth(rows, months) {
   );
 }
 
+/* ══════════════════════════════════════════════
+   REVENUE DASHBOARD VIEW  (/report/dashboard)
+══════════════════════════════════════════════ */
+function RevenueDashboardView() {
+  const today     = new Date().toISOString().split('T')[0];
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+
+  const [data,       setData]       = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [fromDate,   setFromDate]   = useState(yearStart);
+  const [toDate,     setToDate]     = useState(today);
+  const [page,       setPage]       = useState(1);
+  const LIMIT = 20;
+
+  const m = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const load = async (pg = 1) => {
+    setLoading(true);
+    try {
+      const res = await httpService.get('/report/dashboard', {
+        params: { fromDate, toDate, page: pg, limit: LIMIT },
+        token: true,
+      });
+      setData(res?.data ?? res ?? null);
+      setPage(pg);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(1); }, []); // eslint-disable-line
+
+  const counts   = data?.counts   ?? {};
+  const earnings = data?.earnings ?? {};
+  const menSess  = earnings.mentorSessions ?? {};
+  const web      = earnings.webinars       ?? {};
+  const mentors  = data?.mentorWiseEarning ?? [];
+  const pag      = data?.mentorWisePagination ?? { page: 1, totalPages: 1, totalRows: 0, limit: LIMIT };
+
+  return (
+    <div>
+      {/* ── date filter ── */}
+      <div className="adm-fp" style={{ marginBottom: 22 }}>
+        <div className="adm-fp-top">
+          <div className="adm-fp-title">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+            Date Range
+          </div>
+        </div>
+        <div className="adm-fp-row" style={{ alignItems: 'flex-end' }}>
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">From</div>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="adm-date-input" />
+          </div>
+          <div className="adm-fp-group">
+            <div className="adm-fp-label">To</div>
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="adm-date-input" />
+          </div>
+          <button className="adm-fp-apply" onClick={() => load(1)} disabled={loading}>
+            {loading
+              ? <><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.4)" strokeWidth="2"/><path d="M12 3a9 9 0 019 9" stroke="#fff" strokeWidth="2" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>Loading…</>
+              : <><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M3 6h18M10 12h4M6 18h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Apply Filter</>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* ── count KPIs ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 14, marginBottom: 22 }}>
+        {[
+          { label: 'Total Mentors',      val: counts.totalMentors          ?? '—', bg: '#EEF2FF', col: '#4F46E5',
+            ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.8"/><path d="M3 20c0-3 2.8-5.2 6-5.2S15 17 15 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 5.5a3 3 0 010 5.6M18 20c0-2.4-1-4.2-2.6-5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> },
+          { label: 'Active Webinars',    val: counts.activeWebinarSessions  ?? '—', bg: '#F0FDF4', col: '#15803D',
+            ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+          { label: 'Completed Webinars', val: counts.completedWebinars      ?? '—', bg: '#FEF3DA', col: '#B45309',
+            ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/></svg> },
+          { label: 'Active Students',    val: counts.activeStudents         ?? '—', bg: '#FFF7ED', col: '#EA580C',
+            ic: <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="8" r="3.6" stroke="currentColor" strokeWidth="1.8"/><path d="M5 20c0-3.3 3.4-6 7-6s7 2.7 7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> },
+        ].map(c => (
+          <div key={c.label} style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 2px 12px rgba(0,0,0,.04)', transition: 'box-shadow .2s' }}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 22px rgba(79,70,229,.12)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,.04)'}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: c.bg, color: c.col, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{c.ic}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: c.col, lineHeight: 1, marginBottom: 6 }}>{c.val}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)' }}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── earnings breakdown ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 22 }}>
+        {/* Mentor Sessions card */}
+        <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 18, padding: '22px 24px', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="19" height="19" style={{ color: '#4F46E5' }}><circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.8"/><path d="M3 20c0-3 2.8-5.2 6-5.2S15 17 15 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 5.5a3 3 0 010 5.6M18 20c0-2.4-1-4.2-2.6-5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </div>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>Mentor Sessions</span>
+          </div>
+          {[
+            { l: 'Total Revenue',  v: m(menSess.totalAmount),     col: '#1E1B4B', big: true },
+            // { l: 'Mentor Fee',     v: m(menSess.totalMentorFee),  col: 'var(--ink-2)' },
+            { l: 'Platform Fee',   v: m(menSess.totalPlatformFee),col: '#4F46E5' },
+            { l: 'GST Collected',  v: m(menSess.totalGst),        col: '#B45309' },
+          ].map(r => (
+            <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 600 }}>{r.l}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: r.big ? 800 : 700, fontSize: r.big ? 17 : 14, color: r.col }}>{r.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Webinars card */}
+        <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 18, padding: '22px 24px', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg viewBox="0 0 24 24" fill="none" width="19" height="19" style={{ color: '#15803D' }}><path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: 'var(--ink)' }}>Webinars</span>
+          </div>
+          {[
+            { l: 'Total Revenue',  v: m(web.totalAmount),    col: '#14532D', big: true },
+            { l: 'Webinar Fee',    v: m(web.totalWebinarFee),col: 'var(--ink-2)' },
+            { l: 'GST Collected',  v: m(web.totalGst),       col: '#B45309' },
+          ].map(r => (
+            <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 600 }}>{r.l}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: r.big ? 800 : 700, fontSize: r.big ? 17 : 14, color: r.col }}>{r.v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── total platform earning hero ── */}
+      <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 18, padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28, boxShadow: '0 8px 28px rgba(79,70,229,.35)' }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.7)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Total Platform Earning</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{m(earnings.totalPlatformEarning)}</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', marginTop: 6 }}>
+            Sessions: {m(menSess.totalPlatformFee)} &nbsp;·&nbsp; Webinars: {m(web.totalWebinarFee)}
+          </div>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" width="56" height="56" style={{ opacity: .3 }}><circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="1.8"/><path d="M12 6v2m0 8v2M9 10a3 3 0 016 0c0 2-1.5 2.5-3 3s-3 1-3 3a3 3 0 006 0" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+      </div>
+
+      {/* ── mentor-wise earning table ── */}
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>
+        Mentor-wise Earnings
+      </div>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>Loading…</div>
+      ) : mentors.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-3)', fontSize: 14 }}>No mentor earning data for the selected period.</div>
+      ) : (
+        <>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>Mentor</th>
+                  <th>Sessions</th>
+                  <th>Total Revenue</th>
+                  <th>Mentor Fee</th>
+                  <th>Platform Fee</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mentors.map(mn => {
+                  const fullName = `${mn.authUser?.firstName || ''} ${mn.authUser?.lastName || ''}`.trim() || `Mentor #${mn.authUserId}`;
+                  return (
+                    <tr key={mn.authUserId}>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(fullName) }}>{initialsAd(mn.authUser?.firstName, mn.authUser?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{fullName}</div>
+                            <div className="u-e">{mn.authUser?.email || '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="badge b-indigo">{mn.sessionCount}</span></td>
+                      <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: '#10B981' }}>{m(mn.totalAmount)}</span></td>
+                      <td style={{ fontSize: 14, color: 'var(--ink-2)', fontWeight: 600 }}>{m(mn.totalMentorFee)}</td>
+                      <td><span className="badge b-indigo">{m(mn.totalPlatformFee)}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* pagination */}
+          {pag.totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, flexWrap: 'wrap', gap: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>
+                Showing <b style={{ color: 'var(--ink)' }}>{(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, pag.totalRows)}</b> of <b style={{ color: 'var(--ink)' }}>{pag.totalRows}</b> mentors
+              </span>
+              <div style={{ display: 'flex', gap: 5 }}>
+                <button onClick={() => load(1)} disabled={page === 1 || loading}
+                  style={{ padding: '7px 11px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? .4 : 1 }}>«</button>
+                <button onClick={() => load(page - 1)} disabled={page === 1 || loading}
+                  style={{ padding: '7px 14px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? .4 : 1 }}>‹ Prev</button>
+                {Array.from({ length: Math.min(pag.totalPages, 5) }, (_, i) => {
+                  const half  = 2;
+                  const start = Math.max(1, Math.min(page - half, pag.totalPages - 4));
+                  return start + i;
+                }).filter(p => p >= 1 && p <= pag.totalPages).map(p => (
+                  <button key={p} onClick={() => load(p)} disabled={loading}
+                    style={{ padding: '7px 12px', background: page === p ? '#4F46E5' : '#fff', color: page === p ? '#fff' : 'var(--ink-2)', border: `1.5px solid ${page === p ? '#4F46E5' : 'var(--border)'}`, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: page === p ? '0 2px 8px rgba(79,70,229,.3)' : 'none' }}>{p}</button>
+                ))}
+                <button onClick={() => load(page + 1)} disabled={page >= pag.totalPages || loading}
+                  style={{ padding: '7px 14px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: page >= pag.totalPages ? 'not-allowed' : 'pointer', opacity: page >= pag.totalPages ? .4 : 1 }}>Next ›</button>
+                <button onClick={() => load(pag.totalPages)} disabled={page === pag.totalPages || loading}
+                  style={{ padding: '7px 11px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: page === pag.totalPages ? 'not-allowed' : 'pointer', opacity: page === pag.totalPages ? .4 : 1 }}>»</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   REPORT HELPERS
+══════════════════════════════════════════════ */
+const rMoney = (n) => (n != null && n !== '' && !isNaN(Number(n))) ? `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00';
+
+/* ── shared report filter bar ── */
+function ReportFilterBar({ fromDate, toDate, onFromChange, onToChange, onApply, loading }) {
+  return (
+    <div className="adm-fp">
+      <div className="adm-fp-top">
+        <div className="adm-fp-title">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+          Date Range Filter
+        </div>
+      </div>
+      <div className="adm-fp-row" style={{ alignItems: 'flex-end' }}>
+        <div className="adm-fp-group">
+          <div className="adm-fp-label">From</div>
+          <input type="date" value={fromDate} onChange={e => onFromChange(e.target.value)} className="adm-date-input" />
+        </div>
+        <div className="adm-fp-group">
+          <div className="adm-fp-label">To</div>
+          <input type="date" value={toDate} onChange={e => onToChange(e.target.value)} className="adm-date-input" />
+        </div>
+        <button className="adm-fp-apply" onClick={onApply} disabled={loading}>
+          {loading
+            ? <><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.4)" strokeWidth="2"/><path d="M12 3a9 9 0 019 9" stroke="#fff" strokeWidth="2" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>Loading…</>
+            : <><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M3 6h18M10 12h4M6 18h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Apply Filter</>
+          }
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── summary stat cards ── */
+function ReportStatCards({ cards }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(175px,1fr))', gap: 14, marginBottom: 22 }}>
+      {cards.map(c => (
+        <div key={c.label} style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,.05)', transition: 'box-shadow .2s', cursor: 'default' }}
+          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(79,70,229,.12)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,.05)'}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: c.bg || '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
+              {c.icon}
+            </div>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.05em', lineHeight: 1.3 }}>{c.label}</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: c.color || 'var(--ink)', lineHeight: 1, letterSpacing: '-.02em' }}>{c.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── pagination bar ── */
+function ReportPager({ page, totalPages, totalRows, limit, onPage, loading }) {
+  if (!totalPages || totalPages <= 1) return null;
+  const windowSize = 5;
+  const half = Math.floor(windowSize / 2);
+  let start = Math.max(1, page - half);
+  let end   = Math.min(totalPages, start + windowSize - 1);
+  if (end - start < windowSize - 1) start = Math.max(1, end - windowSize + 1);
+  const pages = [];
+  for (let p = start; p <= end; p++) pages.push(p);
+  const from = (page - 1) * limit + 1;
+  const to   = Math.min(page * limit, totalRows);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, flexWrap: 'wrap', gap: 10 }}>
+      <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>
+        Showing <b style={{ color: 'var(--ink)' }}>{from}–{to}</b> of <b style={{ color: 'var(--ink)' }}>{totalRows}</b> records
+      </span>
+      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+        <button onClick={() => onPage(1)} disabled={page === 1 || loading}
+          style={{ padding: '7px 11px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>«</button>
+        <button onClick={() => onPage(page - 1)} disabled={page === 1 || loading}
+          style={{ padding: '7px 13px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>‹ Prev</button>
+        {start > 1 && <span style={{ fontSize: 13, color: 'var(--ink-3)', padding: '0 4px' }}>…</span>}
+        {pages.map(p => (
+          <button key={p} onClick={() => onPage(p)} disabled={loading}
+            style={{ padding: '7px 12px', background: page === p ? '#4F46E5' : '#fff', color: page === p ? '#fff' : 'var(--ink-2)', border: `1.5px solid ${page === p ? '#4F46E5' : 'var(--border)'}`, borderRadius: 8, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: page === p ? '0 2px 8px rgba(79,70,229,.3)' : 'none' }}>
+            {p}
+          </button>
+        ))}
+        {end < totalPages && <span style={{ fontSize: 13, color: 'var(--ink-3)', padding: '0 4px' }}>…</span>}
+        <button onClick={() => onPage(page + 1)} disabled={page >= totalPages || loading}
+          style={{ padding: '7px 13px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.4 : 1 }}>Next ›</button>
+        <button onClick={() => onPage(totalPages)} disabled={page === totalPages || loading}
+          style={{ padding: '7px 11px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>»</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MENTOR PAYOUT REPORT VIEW
+   API: /report/mentor-payout
+   Response: { data: { summary, mentorWise[], rows[], pagination } }
+══════════════════════════════════════════════ */
+function MentorPayoutReportView() {
+  const today = new Date().toISOString().split('T')[0];
+  const [reportData, setReportData] = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [fromDate,   setFromDate]   = useState('2026-01-01');
+  const [toDate,     setToDate]     = useState(today);
+  const [page,       setPage]       = useState(1);
+  const [mPage,      setMPage]      = useState(1);
+  const [activeTab,  setActiveTab]  = useState('mentor'); // 'mentor' | 'sessions'
+  const LIMIT   = 10;
+  const M_LIMIT = 10;
+
+  const load = async (pg = 1) => {
+    setLoading(true);
+    try {
+      const res = await httpService.get('/report/mentor-payout', {
+        params: { fromDate, toDate, page: pg, limit: LIMIT },
+        token: true,
+      });
+      setReportData(res?.data ?? null);
+      setPage(pg);
+      setMPage(1);
+    } catch { setReportData(null); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(1); }, []); // eslint-disable-line
+
+  const summary    = reportData?.summary    ?? {};
+  const mentorWise = reportData?.mentorWise ?? reportData?.mentorWiseEarning ?? reportData?.mentors ?? [];
+  const rows       = reportData?.rows       ?? reportData?.sessionRows ?? [];
+  const pagination = reportData?.pagination ?? reportData?.rowsPagination ?? {};
+  const totalPages = pagination.totalPages  ?? 1;
+  const totalRows  = pagination.totalRows   ?? rows.length;
+
+  const mTotalPages      = Math.max(1, Math.ceil(mentorWise.length / M_LIMIT));
+  const displayedMentors = mentorWise.slice((mPage - 1) * M_LIMIT, mPage * M_LIMIT);
+
+  const TAB_BTN = (id, label, icon) => (
+    <button onClick={() => setActiveTab(id)}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, border: 'none', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', transition: 'all .15s',
+        background: activeTab === id ? '#4F46E5' : 'transparent',
+        color: activeTab === id ? '#fff' : 'var(--ink-3)',
+        boxShadow: activeTab === id ? '0 4px 14px rgba(79,70,229,.3)' : 'none',
+      }}>
+      {icon} {label}
+    </button>
+  );
+
+  return (
+    <div>
+      {/* Summary stat cards */}
+      <ReportStatCards cards={[
+        { label: 'Total Sessions',    value: summary.totalSessions ?? '—',              icon: '📅', bg: '#EEF2FF', color: '#4F46E5'   },
+        { label: 'Total Amount',      value: rMoney(summary.totalAmount),               icon: '💰', bg: '#D1FAE5', color: '#065F46'   },
+        { label: 'Mentor Fee',        value: rMoney(summary.totalMentorFee),            icon: '👨‍🏫', bg: '#FEF3C7', color: '#B45309'   },
+        { label: 'Platform Fee',      value: rMoney(summary.totalPlatformFee),          icon: '🏛',  bg: '#FEE2E2', color: '#DC2626'   },
+        { label: 'Total GST',         value: rMoney(summary.totalGst),                 icon: '🧾', bg: '#F0FDF4', color: '#059669'   },
+        { label: 'Gateway Charge',    value: rMoney(summary.totalGatewayCharge),       icon: '🔗', bg: '#F8FAFC', color: 'var(--ink)' },
+      ]} />
+
+      {/* Filter bar */}
+      <ReportFilterBar
+        fromDate={fromDate} toDate={toDate}
+        onFromChange={setFromDate} onToChange={setToDate}
+        onApply={() => load(1)} loading={loading}
+      />
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#F1F5F9', borderRadius: 12, padding: 5, width: 'fit-content' }}>
+        {TAB_BTN('mentor',   'Mentor-wise Summary', '👥')}
+        {TAB_BTN('sessions', 'Session Details',     '📋')}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-3)' }}>
+          <svg viewBox="0 0 24 24" fill="none" width="40" height="40" style={{ marginBottom: 14, animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="#E2E8F0" strokeWidth="2.5"/><path d="M12 3a9 9 0 019 9" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round"/></svg>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Loading payout data…</div>
+        </div>
+      ) : !reportData ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-3)' }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>📭</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>No data available</div>
+          <div style={{ fontSize: 13.5 }}>Adjust the date range and click Apply Filter.</div>
+        </div>
+      ) : activeTab === 'mentor' ? (
+        /* ── Mentor-wise summary table ── */
+        <>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Mentor</th>
+                  <th>Sessions</th>
+                  <th>Total Amount</th>
+                  <th>Mentor Fee</th>
+                  <th>Platform Fee</th>
+                  <th>GST</th>
+                  <th>Discount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mentorWise.length === 0 ? (
+                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>No mentor data found.</td></tr>
+                ) : displayedMentors.map((m, i) => {
+                  const fullName = `${m.authUser?.firstName ?? ''} ${m.authUser?.lastName ?? ''}`.trim() || `Mentor #${m.authUserId}`;
+                  return (
+                    <tr key={m.authUserId ?? i} style={{ cursor: 'pointer' }}
+                      onClick={() => setActiveTab('sessions')}>
+                      <td style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600 }}>{(mPage - 1) * M_LIMIT + i + 1}</td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(fullName) }}>{initialsAd(m.authUser?.firstName, m.authUser?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{fullName}</div>
+                            <div className="u-e">{m.authUser?.email ?? '—'}</div>
+                            {m.authUser?.contact && <div className="u-e">{m.authUser.contact}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge b-indigo">{m.sessionCount}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: '#10B981' }}>
+                          {rMoney(m.totalAmount)}
+                        </span>
+                      </td>
+                      <td><span style={{ fontWeight: 700, color: '#B45309' }}>{rMoney(m.totalMentorFee)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#DC2626' }}>{rMoney(m.totalPlatformFee)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#4F46E5' }}>{rMoney(m.totalGst)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)' }}>{rMoney(m.totalDiscount)}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ReportPager page={mPage} totalPages={mTotalPages} totalRows={mentorWise.length} limit={M_LIMIT} onPage={setMPage} loading={loading} />
+        </>
+      ) : (
+        /* ── Session details table ── */
+        <>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Mentor</th>
+                  <th>Student</th>
+                  <th>Date &amp; Time</th>
+                  <th>Amount</th>
+                  <th>Mentor Fee</th>
+                  <th>Platform Fee</th>
+                  <th>GST</th>
+                  <th>Gateway</th>
+                  <th>Payment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
+                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>No session records found.</td></tr>
+                ) : rows.map((r, i) => {
+                  const mentorName  = `${r.authUser?.firstName ?? ''} ${r.authUser?.lastName ?? ''}`.trim() || `#${r.authUserId}`;
+                  const studentName = `${r.user?.firstName    ?? ''} ${r.user?.lastName    ?? ''}`.trim() || `#${r.userId}`;
+                  const pyStyle     = (r.paymentStatus === 'done' || r.paymentStatus === true)
+                    ? { bg: '#D1FAE5', color: '#065F46', label: 'Paid' }
+                    : { bg: '#FEF3C7', color: '#B45309', label: r.paymentStatus ?? '—' };
+                  return (
+                    <tr key={r.id ?? i}>
+                      <td style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600 }}>{(page - 1) * LIMIT + i + 1}</td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(mentorName) }}>{initialsAd(r.authUser?.firstName, r.authUser?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{mentorName}</div>
+                            <div className="u-e">{r.authUser?.email ?? r.authUser?.contact ?? '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(studentName) }}>{initialsAd(r.user?.firstName, r.user?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{studentName}</div>
+                            <div className="u-e">{r.user?.email ?? r.user?.contact ?? '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>{r.date ?? '—'}</div>
+                        {r.time && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{r.time}</div>}
+                        {r.transactionId && (
+                          <div style={{ fontSize: 10.5, fontFamily: 'monospace', color: '#4F46E5', marginTop: 3, background: '#EEF2FF', padding: '1px 6px', borderRadius: 4, display: 'inline-block' }}>
+                            {r.transactionId.length > 18 ? r.transactionId.slice(0, 16) + '…' : r.transactionId}
+                          </div>
+                        )}
+                      </td>
+                      <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: '#10B981' }}>{rMoney(r.amount)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#B45309', fontSize: 13 }}>{rMoney(r.mentorFee)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#DC2626', fontSize: 13 }}>{rMoney(r.platformFee)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#4F46E5', fontSize: 13 }}>{rMoney(r.gstAmount)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)', fontSize: 12 }}>{rMoney(r.paymentGatewayCharge)}</span></td>
+                      <td>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: pyStyle.bg, color: pyStyle.color, whiteSpace: 'nowrap' }}>
+                          {pyStyle.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ReportPager page={page} totalPages={totalPages} totalRows={totalRows} limit={LIMIT} onPage={load} loading={loading} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   WEBINAR EARNING REPORT VIEW
+   API: /report/webinar-earning
+   Response: { data: { summary, webinarWise[], rows[], pagination } }
+══════════════════════════════════════════════ */
+function WebinarEarningReportView() {
+  const today = new Date().toISOString().split('T')[0];
+  const [reportData, setReportData] = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [fromDate,   setFromDate]   = useState('2026-01-01');
+  const [toDate,     setToDate]     = useState(today);
+  const [page,       setPage]       = useState(1);
+  const [wSumPage,   setWSumPage]   = useState(1);
+  const [activeTab,  setActiveTab]  = useState('webinar'); // 'webinar' | 'registrations'
+  const LIMIT       = 20;
+  const W_SUM_LIMIT = 10;
+
+  const load = async (pg = 1) => {
+    setLoading(true);
+    try {
+      const res = await httpService.get('/report/webinar-earning', {
+        params: { fromDate, toDate, page: pg, limit: LIMIT },
+        token: true,
+      });
+      setReportData(res?.data ?? null);
+      setPage(pg);
+      setWSumPage(1);
+    } catch { setReportData(null); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(1); }, []); // eslint-disable-line
+
+  const summary     = reportData?.summary    ?? {};
+  const webinarWise = reportData?.webinarWise ?? reportData?.webinarWiseSummary ?? reportData?.webinars ?? [];
+  const rows        = reportData?.rows        ?? reportData?.registrationRows ?? [];
+  const pagination  = reportData?.pagination  ?? reportData?.rowsPagination ?? {};
+  const totalPages  = pagination.totalPages   ?? 1;
+  const totalRows   = pagination.totalRows    ?? rows.length;
+
+  const wSumTotalPages   = Math.max(1, Math.ceil(webinarWise.length / W_SUM_LIMIT));
+  const displayedWebinars = webinarWise.slice((wSumPage - 1) * W_SUM_LIMIT, wSumPage * W_SUM_LIMIT);
+
+  const TAB_BTN = (id, label, icon) => (
+    <button onClick={() => setActiveTab(id)}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, border: 'none', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', transition: 'all .15s',
+        background: activeTab === id ? '#4F46E5' : 'transparent',
+        color: activeTab === id ? '#fff' : 'var(--ink-3)',
+        boxShadow: activeTab === id ? '0 4px 14px rgba(79,70,229,.3)' : 'none',
+      }}>
+      {icon} {label}
+    </button>
+  );
+
+  const pyStatus = (r) => {
+    if (r.paymentStatus === true || r.status === 'registered') return { bg: '#D1FAE5', color: '#065F46', label: 'Registered' };
+    return { bg: '#FEF3C7', color: '#B45309', label: r.status ?? '—' };
+  };
+
+  return (
+    <div>
+      {/* Summary stat cards */}
+      <ReportStatCards cards={[
+        { label: 'Total Registrations', value: summary.totalRegistrations ?? '—',     icon: '🎟', bg: '#EEF2FF', color: '#4F46E5'   },
+        { label: 'Total Revenue',        value: rMoney(summary.totalAmount),           icon: '💰', bg: '#D1FAE5', color: '#065F46'   },
+        { label: 'Webinar Fee',          value: rMoney(summary.totalWebinarFee),       icon: '🎥', bg: '#FEF3C7', color: '#B45309'   },
+        { label: 'Total GST',            value: rMoney(summary.totalGst),             icon: '🧾', bg: '#F0FDF4', color: '#059669'   },
+        { label: 'Gateway Charge',       value: rMoney(summary.totalGatewayCharge),   icon: '🔗', bg: '#F8FAFC', color: 'var(--ink)' },
+        { label: 'Total Discount',       value: rMoney(summary.totalDiscount),        icon: '🏷',  bg: '#FEF9C3', color: '#92400E'   },
+      ]} />
+
+      {/* Filter bar */}
+      <ReportFilterBar
+        fromDate={fromDate} toDate={toDate}
+        onFromChange={setFromDate} onToChange={setToDate}
+        onApply={() => load(1)} loading={loading}
+      />
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#F1F5F9', borderRadius: 12, padding: 5, width: 'fit-content' }}>
+        {TAB_BTN('webinar',       'Webinar-wise Summary', '📊')}
+        {TAB_BTN('registrations', 'Registration Details', '📋')}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-3)' }}>
+          <svg viewBox="0 0 24 24" fill="none" width="40" height="40" style={{ marginBottom: 14, animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="#E2E8F0" strokeWidth="2.5"/><path d="M12 3a9 9 0 019 9" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round"/></svg>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Loading webinar earnings…</div>
+        </div>
+      ) : !reportData ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-3)' }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>🎬</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>No data available</div>
+          <div style={{ fontSize: 13.5 }}>Adjust the date range and click Apply Filter.</div>
+        </div>
+      ) : activeTab === 'webinar' ? (
+        /* ── Webinar-wise summary ── */
+        <>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Webinar</th>
+                  <th>Presenter</th>
+                  <th>Date</th>
+                  <th>Price</th>
+                  <th>Registrations</th>
+                  <th>Total Revenue</th>
+                  <th>Webinar Fee</th>
+                  <th>GST</th>
+                  <th>Discount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webinarWise.length === 0 ? (
+                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>No webinar data found.</td></tr>
+                ) : displayedWebinars.map((w, i) => {
+                  const wInfo = w.Webinar ?? {};
+                  return (
+                    <tr key={w.webinarId ?? i} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('registrations')}>
+                      <td style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600 }}>{(wSumPage - 1) * W_SUM_LIMIT + i + 1}</td>
+                      <td>
+                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.3 }}>{wInfo.title ?? `Webinar #${w.webinarId}`}</div>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: wInfo.isFree ? '#D1FAE5' : '#EEF2FF', color: wInfo.isFree ? '#065F46' : '#4F46E5', marginTop: 4, display: 'inline-block' }}>
+                          {wInfo.isFree ? 'Free' : 'Paid'}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>{wInfo.presenter ?? '—'}</td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDateAd(wInfo.date)}</td>
+                      <td>
+                        {wInfo.price != null
+                          ? <span className="badge b-indigo">₹{wInfo.price}</span>
+                          : <span style={{ color: 'var(--ink-3)' }}>—</span>}
+                      </td>
+                      <td><span className="badge b-green">{w.registrationCount}</span></td>
+                      <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: '#10B981' }}>{rMoney(w.totalAmount)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#B45309' }}>{rMoney(w.totalWebinarFee)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#4F46E5' }}>{rMoney(w.totalGst)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)' }}>{rMoney(w.totalDiscount)}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ReportPager page={wSumPage} totalPages={wSumTotalPages} totalRows={webinarWise.length} limit={W_SUM_LIMIT} onPage={setWSumPage} loading={loading} />
+        </>
+      ) : (
+        /* ── Registration details ── */
+        <>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Registrant</th>
+                  <th>Webinar</th>
+                  <th>Presenter</th>
+                  <th>Registered On</th>
+                  <th>Webinar Fee</th>
+                  <th>GST</th>
+                  <th>Gateway</th>
+                  <th>Discount</th>
+                  <th>Total Paid</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
+                  <tr><td colSpan={11} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>No registrations found.</td></tr>
+                ) : rows.map((r, i) => {
+                  const wInfo = r.Webinar ?? {};
+                  const ps    = pyStatus(r);
+                  return (
+                    <tr key={r.id ?? i}>
+                      <td style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600 }}>{(page - 1) * LIMIT + i + 1}</td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(r.username ?? '') }}>{(r.username ?? 'U').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</div>
+                          <div>
+                            <div className="u-n">{r.username ?? '—'}</div>
+                            <div className="u-e">{r.email ?? '—'}</div>
+                            {r.contact && <div className="u-e">{r.contact}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--ink)', lineHeight: 1.3 }}>{wInfo.title ?? `#${r.webinarId}`}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>Webinar date: {fmtDateAd(wInfo.date)}</div>
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>{wInfo.presenter ?? '—'}</td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDateAd(r.createdAt)}</td>
+                      <td><span style={{ fontWeight: 700, color: '#B45309' }}>{rMoney(r.webinarFee)}</span></td>
+                      <td><span style={{ fontWeight: 700, color: '#4F46E5' }}>{rMoney(r.gstAmount)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)', fontSize: 12 }}>{rMoney(r.paymentGatewayCharge)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)' }}>{rMoney(r.discount)}</span></td>
+                      <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: '#10B981' }}>{rMoney(r.totalAmount)}</span></td>
+                      <td>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: 'nowrap' }}>
+                          {ps.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ReportPager page={page} totalPages={totalPages} totalRows={totalRows} limit={LIMIT} onPage={load} loading={loading} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   GST REPORT VIEW
+   API: /report/gst
+   Response: { data: { summary, mentorSessionGstRows[], mentorSessionPagination, webinarGstRows[], webinarPagination } }
+══════════════════════════════════════════════ */
+function GSTReportView() {
+  const today = new Date().toISOString().split('T')[0];
+  const [reportData,  setReportData]  = useState(null);
+  const [loading,     setLoading]     = useState(false);
+  const [fromDate,    setFromDate]    = useState('2026-01-01');
+  const [toDate,      setToDate]      = useState(today);
+  const [sessionPage, setSessionPage] = useState(1);
+  const [webinarPage, setWebinarPage] = useState(1);
+  const [activeTab,   setActiveTab]   = useState('sessions'); // 'sessions' | 'webinar'
+  const LIMIT = 20;
+
+  const load = async (sPg = 1, wPg = 1) => {
+    setLoading(true);
+    try {
+      const res = await httpService.get('/report/gst', {
+        params: { fromDate, toDate, page: sPg, limit: LIMIT },
+        token: true,
+      });
+      setReportData(res?.data ?? null);
+      setSessionPage(sPg);
+      setWebinarPage(wPg);
+    } catch { setReportData(null); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(1, 1); }, []); // eslint-disable-line
+
+  const summary     = reportData?.summary ?? {};
+  const sessionRows = reportData?.mentorSessionGstRows  ?? [];
+  const webinarRows = reportData?.webinarGstRows         ?? [];
+  const sPagination = reportData?.mentorSessionPagination ?? {};
+  const wPagination = reportData?.webinarPagination       ?? {};
+
+  const sTotalPages = sPagination.totalPages ?? 1;
+  const sTotalRows  = sPagination.totalRows  ?? sessionRows.length;
+  const wTotalPages = wPagination.totalPages ?? 1;
+  const wTotalRows  = wPagination.totalRows  ?? webinarRows.length;
+
+  const mentorGst   = summary.mentorSessions         ?? {};
+  const webinarGst  = summary.webinarRegistrations   ?? {};
+
+  const TAB_BTN = (id, label, icon, count) => (
+    <button onClick={() => setActiveTab(id)}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, border: 'none', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', transition: 'all .15s',
+        background: activeTab === id ? '#4F46E5' : 'transparent',
+        color: activeTab === id ? '#fff' : 'var(--ink-3)',
+        boxShadow: activeTab === id ? '0 4px 14px rgba(79,70,229,.3)' : 'none',
+      }}>
+      {icon} {label}
+      {count > 0 && (
+        <span style={{ background: activeTab === id ? 'rgba(255,255,255,.25)' : '#E2E8F0', color: activeTab === id ? '#fff' : 'var(--ink-3)', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99 }}>{count}</span>
+      )}
+    </button>
+  );
+
+  return (
+    <div>
+      {/* Top summary cards */}
+      <ReportStatCards cards={[
+        { label: 'Total GST Collected', value: rMoney(summary.totalGst),                                    icon: '🏛',  bg: '#D1FAE5', color: '#065F46' },
+        { label: 'Session GST',          value: rMoney(mentorGst.totalGst),                                  icon: '📅', bg: '#EEF2FF', color: '#4F46E5' },
+        { label: 'Webinar GST',          value: rMoney(webinarGst.totalGst),                                 icon: '🎥', bg: '#FEF3C7', color: '#B45309' },
+        { label: 'Sessions Count',       value: mentorGst.totalSessions  ?? '—',                            icon: '📋', bg: '#F0FDF4', color: '#059669' },
+        { label: 'Session Revenue',      value: rMoney(mentorGst.totalAmount),                               icon: '💳', bg: '#F8FAFC', color: 'var(--ink)' },
+        { label: 'Webinar Revenue',      value: rMoney(webinarGst.totalAmount),                              icon: '💰', bg: '#FEF9C3', color: '#92400E' },
+      ]} />
+
+      {/* Filter bar */}
+      <ReportFilterBar
+        fromDate={fromDate} toDate={toDate}
+        onFromChange={setFromDate} onToChange={setToDate}
+        onApply={() => load(1, 1)} loading={loading}
+      />
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#F1F5F9', borderRadius: 12, padding: 5, width: 'fit-content' }}>
+        {TAB_BTN('sessions', 'Mentor Session GST', '📅', sessionRows.length)}
+        {TAB_BTN('webinar',  'Webinar GST',        '🎥', webinarRows.length)}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-3)' }}>
+          <svg viewBox="0 0 24 24" fill="none" width="40" height="40" style={{ marginBottom: 14, animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="#E2E8F0" strokeWidth="2.5"/><path d="M12 3a9 9 0 019 9" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round"/></svg>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Loading GST report…</div>
+        </div>
+      ) : !reportData ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-3)' }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>🧾</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>No data available</div>
+          <div style={{ fontSize: 13.5 }}>Adjust the date range and click Apply Filter.</div>
+        </div>
+      ) : activeTab === 'sessions' ? (
+        /* ── Mentor Session GST table ── */
+        <>
+          {/* mini summary bar */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            {[
+              { label: 'Sessions',      value: mentorGst.totalSessions ?? '—',   color: '#4F46E5' },
+              { label: 'Total Revenue', value: rMoney(mentorGst.totalAmount),     color: '#10B981' },
+              { label: 'GST Collected', value: rMoney(mentorGst.totalGst),        color: '#DC2626' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 14px' }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 700 }}>{s.label}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: s.color }}>{s.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Mentor</th>
+                  <th>Student</th>
+                  <th>Session Date</th>
+                  <th>Session ID</th>
+                  <th>Amount</th>
+                  <th>GST</th>
+                  <th>Mentor Fee</th>
+                  <th>Platform Fee</th>
+                  <th>Gateway</th>
+                  <th>Coupon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessionRows.length === 0 ? (
+                  <tr><td colSpan={11} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>No session GST records found.</td></tr>
+                ) : sessionRows.map((r, i) => {
+                  const mentorName  = `${r.authUser?.firstName ?? ''} ${r.authUser?.lastName ?? ''}`.trim() || `#${r.authUser?.id}`;
+                  const studentName = `${r.user?.firstName    ?? ''} ${r.user?.lastName    ?? ''}`.trim()   || `#${r.user?.id}`;
+                  const hasGst      = Number(r.gstAmount) > 0;
+                  return (
+                    <tr key={r.id ?? i} style={{ background: hasGst ? '#FFFBEB' : undefined }}>
+                      <td style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600 }}>{(sessionPage - 1) * LIMIT + i + 1}</td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(mentorName) }}>{initialsAd(r.authUser?.firstName, r.authUser?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{mentorName}</div>
+                            <div className="u-e">{r.authUser?.email ?? '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(studentName) }}>{initialsAd(r.user?.firstName, r.user?.lastName)}</div>
+                          <div>
+                            <div className="u-n">{studentName}</div>
+                            <div className="u-e">{r.user?.email ?? r.user?.contact ?? '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.date ?? '—'}</td>
+                      <td>
+                        <div style={{ fontSize: 10.5, fontFamily: 'monospace', color: '#4F46E5', background: '#EEF2FF', padding: '2px 7px', borderRadius: 5, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {r.sessionUniqueId ? r.sessionUniqueId.slice(0, 14) + '…' : `#${r.id}`}
+                        </div>
+                      </td>
+                      <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: '#10B981' }}>{rMoney(r.amount)}</span></td>
+                      <td>
+                        <span style={{ fontWeight: 800, fontSize: 14, color: hasGst ? '#DC2626' : 'var(--ink-3)', fontFamily: 'var(--font-display)' }}>
+                          {rMoney(r.gstAmount)}
+                        </span>
+                        {hasGst && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#DC2626', display: 'inline-block', marginLeft: 5 }} />}
+                      </td>
+                      <td><span style={{ color: '#B45309', fontWeight: 700 }}>{rMoney(r.mentorFee)}</span></td>
+                      <td><span style={{ color: '#4F46E5', fontWeight: 700 }}>{rMoney(r.platformFee)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)', fontSize: 12 }}>{rMoney(r.paymentGatewayCharge)}</span></td>
+                      <td>
+                        {r.couponCode
+                          ? <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: '#F0FDF4', color: '#059669', fontFamily: 'monospace' }}>{r.couponCode}</span>
+                          : <span style={{ color: 'var(--ink-3)', fontSize: 12 }}>—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ReportPager page={sessionPage} totalPages={sTotalPages} totalRows={sTotalRows} limit={LIMIT} onPage={(pg) => { setSessionPage(pg); load(pg, webinarPage); }} loading={loading} />
+        </>
+      ) : (
+        /* ── Webinar GST table ── */
+        <>
+          {/* mini summary bar */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            {[
+              { label: 'Registrations', value: webinarGst.totalRegistrations ?? '—', color: '#4F46E5' },
+              { label: 'Total Revenue', value: rMoney(webinarGst.totalAmount),        color: '#10B981' },
+              { label: 'GST Collected', value: rMoney(webinarGst.totalGst),           color: '#DC2626' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1.5px solid var(--border)', borderRadius: 10, padding: '8px 14px' }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 700 }}>{s.label}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: s.color }}>{s.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="d-table-wrap adm-table">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Registrant</th>
+                  <th>Webinar</th>
+                  <th>Presenter</th>
+                  <th>Webinar Date</th>
+                  <th>Registered On</th>
+                  <th>Total Paid</th>
+                  <th>GST</th>
+                  <th>Webinar Fee</th>
+                  <th>Gateway</th>
+                  <th>Coupon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webinarRows.length === 0 ? (
+                  <tr><td colSpan={11} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)' }}>No webinar GST records found.</td></tr>
+                ) : webinarRows.map((r, i) => {
+                  const wInfo  = r.Webinar ?? {};
+                  const hasGst = Number(r.gstAmount) > 0;
+                  return (
+                    <tr key={r.id ?? i} style={{ background: hasGst ? '#FFFBEB' : undefined }}>
+                      <td style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600 }}>{(webinarPage - 1) * LIMIT + i + 1}</td>
+                      <td>
+                        <div className="u-cell">
+                          <div className="u-av" style={{ background: nameColorAd(r.username ?? '') }}>{(r.username ?? 'U').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</div>
+                          <div>
+                            <div className="u-n">{r.username ?? '—'}</div>
+                            <div className="u-e">{r.email ?? '—'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--ink)', lineHeight: 1.3 }}>{wInfo.title ?? `#${r.id}`}</div>
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>{wInfo.presenter ?? '—'}</td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDateAd(wInfo.date)}</td>
+                      <td style={{ fontSize: 13, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDateAd(r.createdAt)}</td>
+                      <td><span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: '#10B981' }}>{rMoney(r.totalAmount)}</span></td>
+                      <td>
+                        <span style={{ fontWeight: 800, fontSize: 14, color: hasGst ? '#DC2626' : 'var(--ink-3)', fontFamily: 'var(--font-display)' }}>
+                          {rMoney(r.gstAmount)}
+                        </span>
+                        {hasGst && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#DC2626', display: 'inline-block', marginLeft: 5 }} />}
+                      </td>
+                      <td><span style={{ color: '#B45309', fontWeight: 700 }}>{rMoney(r.webinarFee)}</span></td>
+                      <td><span style={{ color: 'var(--ink-3)', fontSize: 12 }}>{rMoney(r.paymentGatewayCharge)}</span></td>
+                      <td>
+                        {r.couponCode
+                          ? <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: '#F0FDF4', color: '#059669', fontFamily: 'monospace' }}>{r.couponCode}</span>
+                          : <span style={{ color: 'var(--ink-3)', fontSize: 12 }}>—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ReportPager page={webinarPage} totalPages={wTotalPages} totalRows={wTotalRows} limit={LIMIT} onPage={(pg) => { setWebinarPage(pg); load(sessionPage, pg); }} loading={loading} />
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── Page ─── */
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
@@ -2278,6 +3623,10 @@ export default function AdminDashboard() {
   const [signupMonthLabels, setSignupMonthLabels] = useState([]);
   const [signupStuData,     setSignupStuData]     = useState([0,0,0,0,0,0,0,0]);
   const [signupMenData,     setSignupMenData]     = useState([0,0,0,0,0,0,0,0]);
+  const [revMonthData,      setRevMonthData]      = useState([0,0,0,0,0,0,0,0]);
+  const [topMentorsData,    setTopMentorsData]    = useState([]);
+  const [ovEarnings,        setOvEarnings]        = useState(null);
+  const [ovMentors,         setOvMentors]         = useState([]);
 
   useEffect(() => {
     /* Students */
@@ -2333,6 +3682,62 @@ export default function AdminDashboard() {
         setTicketCount(rows.length);
         setOpenTicketCount(rows.filter(t => t.status === 'active').length);
       }).catch(() => {});
+
+    /* Transactions — revenue chart + top mentors by earnings */
+    httpService.get('/transaction/admin/list', {
+      params: { page: 1, limit: 500, formType: 'mentorbooking', status: 'success' },
+      token: true,
+    }).then(res => {
+      const rows = res?.data?.rows ?? [];
+      const { labels, months } = getLast8Months();
+      /* monthly revenue */
+      const revData = months.map(target =>
+        rows
+          .filter(r => {
+            if (!r.createdAt) return false;
+            const d = new Date(r.createdAt);
+            return d.getFullYear() === target.getFullYear() && d.getMonth() === target.getMonth();
+          })
+          .reduce((s, r) => s + (Number(r.amount) || 0), 0)
+      );
+      setRevMonthData(revData);
+      if (labels.length) setSignupMonthLabels(labels);
+      /* top mentors */
+      const mentorTotals = {};
+      rows.forEach(t => {
+        const k = t.authUserId;
+        if (!mentorTotals[k]) mentorTotals[k] = { id: String(k), name: `${t.authUser?.firstName || ''} ${t.authUser?.lastName || ''}`.trim() || `#${k}`, email: t.authUser?.email || '', total: 0 };
+        mentorTotals[k].total += Number(t.amount) || 0;
+      });
+      const sorted  = Object.values(mentorTotals).sort((a, b) => b.total - a.total).slice(0, 5);
+      const maxAmt  = sorted[0]?.total || 1;
+      setTopMentorsData(sorted.map(m => ({
+        id:   m.id,
+        name: m.name,
+        email: m.email,
+        amt:  m.total >= 100000 ? `₹${(m.total / 100000).toFixed(2)} L` : m.total >= 1000 ? `₹${(m.total / 1000).toFixed(1)}K` : `₹${m.total}`,
+        pct:  Math.round((m.total / maxAmt) * 100),
+      })));
+    }).catch(() => {});
+
+    /* Revenue Dashboard API — overview summary */
+    const yr = new Date().getFullYear();
+    httpService.get('/report/dashboard', {
+      params: { fromDate: `${yr}-01-01`, toDate: new Date().toISOString().split('T')[0], page: 1, limit: 20 },
+      token: true,
+    }).then(res => {
+      const d = res?.data ?? res ?? {};
+      setOvEarnings(d.earnings ?? null);
+      const ment = d.mentorWiseEarning ?? [];
+      const maxA = ment.reduce((m, r) => Math.max(m, Number(r.totalAmount) || 0), 1);
+      setOvMentors(ment.slice(0, 5).map(m => ({
+        id:    String(m.authUserId),
+        name:  `${m.authUser?.firstName || ''} ${m.authUser?.lastName || ''}`.trim() || `#${m.authUserId}`,
+        email: m.authUser?.email || '',
+        amt:   Number(m.totalAmount) >= 1000 ? `₹${(Number(m.totalAmount)/1000).toFixed(1)}K` : `₹${m.totalAmount}`,
+        pct:   Math.round((Number(m.totalAmount) / maxA) * 100),
+      })));
+    }).catch(() => {});
   }, []);
 
   const meta = VIEW_META[section] || VIEW_META.overview;
@@ -2385,11 +3790,21 @@ export default function AdminDashboard() {
         </NavBtn>
 
         <div className="ds-sec">Finance</div>
-        <NavBtn id="payouts"  label="Mentor Payouts"    count={2}>
+        {/* <NavBtn id="payouts"  label="Mentor Payouts"    count={2}>
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.3" stroke="currentColor" strokeWidth="1.7"/><circle cx="12" cy="12.5" r="2.6" stroke="currentColor" strokeWidth="1.7"/></svg>
-        </NavBtn>
+        </NavBtn> */}
         <NavBtn id="revenue"  label="Revenue & Payments">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" strokeWidth="1.7"/><path d="M12 6v2m0 8v2M9.5 10.5a2.5 2.5 0 015 0c0 1.5-1.5 2-2.5 2s-2.5.5-2.5 2a2.5 2.5 0 005 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+        </NavBtn>
+        <div className="ds-sec" style={{ fontSize: 10, paddingLeft: 18, letterSpacing: '.1em', opacity: 0.75 }}>Reports</div>
+        <NavBtn id="report-mentor-payout"   label="Mentor Payout">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M9 7h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M12 12v4m0 0l-1.5-1.5M12 16l1.5-1.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+        </NavBtn>
+        <NavBtn id="report-webinar-earning" label="Webinar Earning">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2.3" stroke="currentColor" strokeWidth="1.7"/><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M7 10l3 3 7-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </NavBtn>
+        <NavBtn id="report-gst"             label="GST Report">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 3v6h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 13h6M9 17h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
         </NavBtn>
 
         <div className="ds-sec">Content</div>
@@ -2488,10 +3903,10 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <LineChart
-                    months={CHART_MONTHS}
-                    maxY={500}
+                    months={signupMonthLabels.length ? signupMonthLabels : CHART_MONTHS}
+                    maxY={Math.max(10, ...revMonthData, ...SESS_DATA)}
                     series={[
-                      { id: 'lcrev',  color: '#4F46E5', data: REV_DATA  },
+                      { id: 'lcrev',  color: '#4F46E5', data: revMonthData.some(v => v > 0) ? revMonthData : REV_DATA  },
                       { id: 'lcsess', color: '#10B981', data: SESS_DATA },
                     ]}
                   />
@@ -2518,15 +3933,68 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* ── Earnings Overview (from /report/dashboard) ── */}
+              {ovEarnings && (
+                <div className="chart-grid" style={{ marginBottom: 0 }}>
+                  <div className="panel">
+                    <div className="panel-head"><h2>Mentor Session Earnings</h2></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      {[
+                        { l: 'Total Revenue',  v: rMoney(ovEarnings.mentorSessions?.totalAmount ?? 0),    col: '#1E1B4B', big: true },
+                        { l: 'Mentor Fee',     v: rMoney(ovEarnings.mentorSessions?.totalMentorFee ?? 0), col: 'var(--ink-2)' },
+                        { l: 'Platform Fee',   v: rMoney(ovEarnings.mentorSessions?.totalPlatformFee ?? 0), col: '#4F46E5' },
+                        { l: 'GST Collected',  v: rMoney(ovEarnings.mentorSessions?.totalGst ?? 0),       col: '#B45309' },
+                      ].map(r => (
+                        <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+                          <span style={{ fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 600 }}>{r.l}</span>
+                          <span style={{ fontFamily: 'var(--font-display)', fontWeight: r.big ? 800 : 700, fontSize: r.big ? 18 : 14, color: r.col }}>{r.v}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 18, background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 12, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.8)' }}>Platform Earning</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: '#fff' }}>{rMoney(ovEarnings.totalPlatformEarning ?? 0)}</span>
+                    </div>
+                  </div>
+                  <div className="panel">
+                    <div className="panel-head"><h2>Webinar Earnings</h2></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      {[
+                        { l: 'Total Revenue', v: rMoney(ovEarnings.webinars?.totalAmount ?? 0),      col: '#14532D', big: true },
+                        { l: 'Webinar Fee',   v: rMoney(ovEarnings.webinars?.totalWebinarFee ?? 0),  col: 'var(--ink-2)' },
+                        { l: 'GST Collected', v: rMoney(ovEarnings.webinars?.totalGst ?? 0),         col: '#B45309' },
+                      ].map(r => (
+                        <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+                          <span style={{ fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 600 }}>{r.l}</span>
+                          <span style={{ fontFamily: 'var(--font-display)', fontWeight: r.big ? 800 : 700, fontSize: r.big ? 18 : 14, color: r.col }}>{r.v}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 18 }}>
+                      <DonutChart
+                        total={Math.max(1, Number(ovEarnings.webinars?.totalAmount ?? 0))}
+                        segments={[
+                          { label: 'Webinar Fee', value: Number(ovEarnings.webinars?.totalWebinarFee ?? 0), color: '#10B981' },
+                          { label: 'GST',         value: Number(ovEarnings.webinars?.totalGst ?? 0),        color: '#F59E0B' },
+                        ].filter(s => s.value > 0)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Charts row 2 */}
               <div className="chart-grid">
                 <div className="panel">
                   <div className="panel-head"><h2>Top Mentors by Earnings</h2></div>
                   <div className="barlist">
-                    {TOP_MENTORS.map(m => (
-                      <div key={m.name} className="bl-row">
+                    {(ovMentors.length ? ovMentors : topMentorsData.length ? topMentorsData : TOP_MENTORS).map((m, i) => (
+                      <div key={m.id ?? `${m.name}-${i}`} className="bl-row">
                         <div className="bl-top">
-                          <span className="bl-n">{m.name}</span>
+                          <div>
+                            <span className="bl-n">{m.name}</span>
+                            {m.email && <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 1 }}>{m.email}</div>}
+                          </div>
                           <b>{m.amt}</b>
                         </div>
                         <div className="bl-track">
@@ -2624,16 +4092,17 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {section === 'sessions'  && <SessionsView />}
-          {section === 'mentors'   && <MentorsView />}
-          {section === 'users'     && <UsersView />}
-          {section === 'payouts'   && <PayoutsView />}
-          {section === 'jobs'      && <JobsView />}
-          {section === 'feedback'  && <FeedbackView />}
-          {section === 'revenue'   && (
-            <div className="panel"><div className="panel-head"><h2>Revenue &amp; Payments</h2></div><p style={{ color: 'var(--ink-3)', padding: '16px 0' }}>Revenue analytics coming soon.</p></div>
-          )}
-          {section === 'tickets'   && <AdminTicketsView />}
+          {section === 'sessions'                && <SessionsView />}
+          {section === 'mentors'                 && <MentorsView />}
+          {section === 'users'                   && <UsersView />}
+          {section === 'payouts'                 && <PayoutsView />}
+          {section === 'jobs'                    && <JobsView />}
+          {section === 'feedback'                && <FeedbackView />}
+          {section === 'revenue'                 && <RevenueDashboardView />}
+          {section === 'tickets'                 && <AdminTicketsView />}
+          {section === 'report-mentor-payout'    && <MentorPayoutReportView />}
+          {section === 'report-webinar-earning'  && <WebinarEarningReportView />}
+          {section === 'report-gst'              && <GSTReportView />}
         </div>
       </div>
     </div>

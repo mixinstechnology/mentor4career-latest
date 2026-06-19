@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import PageHero from '../components/PageHero.jsx';
 import httpService from '../utils/apiService.tsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import JobAdPopup from '../components/JobAdPopup.jsx';
 
 const JOBSColor = [
   'linear-gradient(135deg,#4F46E5,#3B82F6)',
@@ -129,6 +130,12 @@ function JobDetailModal({ job, applied, applying, onApply, onClose }) {
 
 export default function Jobs() {
   const { user, openAuth } = useAuth();
+  const [showJobAd, setShowJobAd] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowJobAd(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
   const [data,       setdata]       = useState([]);
   const [filter,     setFilter]     = useState('all');
   const [applying,   setApplying]   = useState({});
@@ -218,12 +225,13 @@ export default function Jobs() {
 
   return (
     <main id="top">
+      {showJobAd && <JobAdPopup onClose={() => setShowJobAd(false)} />}
       <PageHero
         crumb="Jobs"
         eyebrow="Fresh This Week"
         title={<>Internships &amp; <span className="grad-text">fresher jobs</span> worth applying to</>}
         sub="Curated openings from companies that actively hire freshers. Apply and track every application in one place."
-        stats={[{ v: '2,400+', l: 'Open Roles' }, { v: '600+', l: 'Hiring Companies' }, { v: '18k', l: 'Hires Made' }]}
+        // stats={[{ v: '2,400+', l: 'Open Roles' }, { v: '600+', l: 'Hiring Companies' }, { v: '18k', l: 'Hires Made' }]}
       />
 
       <section className="section-pad" style={{ paddingTop: 24 }}>

@@ -46,7 +46,7 @@ export const FOCUS_LABEL = {
 
  const arr =data?.map((item,id)=>{ 
   if(item?.isVerified){
-  return ({  id: item?.id, init: String(item?.firstName)?.slice(0,2), name: item?.firstName + ' ' + item?.lastName, type: item?.type, typeLabel: 'Final Year', role: item?.jobRole, org: item?.organizationName, stream: 'cse', focus: ['admissions', 'campus', 'placement'], rating: 4.9, reviews: 212, sessions: 340, price: item?.chargePerSession, resp: '~2 hrs', bio: item?.bio})
+  return ({  id: item?.authUserId, init: String(item?.firstName)?.slice(0,2), name: item?.firstName + ' ' + item?.lastName, type: item?.type, typeLabel: 'Final Year', role: item?.jobRole, org: item?.organizationName, stream: 'cse', focus: ['admissions', 'campus', 'placement'], rating: 4.9, reviews: 212, sessions: 340, price: item?.chargePerSession, resp: '~2 hrs', bio: item?.bio})
  }
  }).filter((item)=>item!==undefined)
 
