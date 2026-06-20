@@ -134,9 +134,19 @@ function TermsContent() {
       <div style={{ background: '#EEF2FF', borderRadius: 12, padding: '14px 18px', marginTop: 18 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: '#4F46E5', marginBottom: 8 }}>Support Contact</div>
         <Sub>For any queries, support, or payment-related issues, contact us at:</Sub>
-        <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 2 }}>
-          📧 connect@mentor4career.com<br />
-          📱 +91-7999503527
+        <div style={{ fontSize: 13.5, color: 'var(--ink-2)', display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+            </svg>
+            connect@mentor4career.com
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+            +91-7999503527
+          </span>
         </div>
       </div>
     </>
@@ -183,7 +193,12 @@ function PrivacyContent() {
       <div style={{ background: '#EEF2FF', borderRadius: 12, padding: '14px 18px', marginTop: 18 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: '#4F46E5', marginBottom: 6 }}>Contact Us</div>
         <Sub>If you have any questions, concerns, or requests regarding this Privacy and Payment Policy or the processing of your personal information, please contact us at:</Sub>
-        <div style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>📧 connect@mentor4career.com</div>
+        <div style={{ fontSize: 13.5, color: 'var(--ink-2)', display: 'flex', alignItems: 'center', gap: 7 }}>
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          </svg>
+          connect@mentor4career.com
+        </div>
       </div>
     </>
   );
@@ -243,14 +258,49 @@ function AboutContent() {
       <MH>Why Choose Mentor4Career?</MH>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12, marginBottom: 22 }}>
         {[
-          { icon: '🎯', title: 'Comprehensive Support', desc: 'End-to-end services covering every aspect of your college and career journey.' },
-          { icon: '🧑‍💼', title: 'Expert Guidance', desc: 'Experienced counselors, industry professionals, and educators dedicated to your success.' },
-          { icon: '💸', title: 'Affordable Solutions', desc: 'Budget-friendly options and free resources accessible to all students.' },
-          { icon: '✨', title: 'Customized Services', desc: 'Tailored services to match your specific needs and aspirations.' },
-          { icon: '🏆', title: 'Proven Track Record', desc: 'Students placed in top colleges, dream internships, and job interviews.' },
+          {
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+              </svg>
+            ),
+            color: '#4F46E5', title: 'Comprehensive Support', desc: 'End-to-end services covering every aspect of your college and career journey.',
+          },
+          {
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/><path d="M12 17v4M8 21h8"/>
+              </svg>
+            ),
+            color: '#0891B2', title: 'Expert Guidance', desc: 'Experienced counselors, industry professionals, and educators dedicated to your success.',
+          },
+          {
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+              </svg>
+            ),
+            color: '#059669', title: 'Affordable Solutions', desc: 'Budget-friendly options and free resources accessible to all students.',
+          },
+          {
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l2.5 5 5.5.8-4 3.9 1 5.5L12 16l-5 2.6 1-5.5-4-3.9 5.5-.8L12 2z"/>
+              </svg>
+            ),
+            color: '#D97706', title: 'Customized Services', desc: 'Tailored services to match your specific needs and aspirations.',
+          },
+          {
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 21h8M12 17v4M7 4H5a2 2 0 00-2 2v5c0 3.31 2.69 6 6 6h6c3.31 0 6-2.69 6-6V6a2 2 0 00-2-2h-2"/><path d="M7 4h10"/>
+              </svg>
+            ),
+            color: '#7C3AED', title: 'Proven Track Record', desc: 'Students placed in top colleges, dream internships, and job interviews.',
+          },
         ].map(c => (
           <div key={c.title} style={{ background: '#F8FAFF', border: '1.5px solid #E8ECFF', borderRadius: 12, padding: '14px 16px' }}>
-            <div style={{ fontSize: 22, marginBottom: 6 }}>{c.icon}</div>
+            <div style={{ color: c.color, marginBottom: 6 }}>{c.icon}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', marginBottom: 4 }}>{c.title}</div>
             <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>{c.desc}</div>
           </div>
@@ -324,18 +374,31 @@ export default function Footer() {
 
               {/* Address */}
               <div style={{ marginTop: 14, fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.7, display: 'flex', gap: 8 }}>
-                <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>📍</span>
-                <span>F.No. 09, Vishwas Park, Sector 16, Raje Shivaji Nagar, Chinchwad, Pune – 411019</span>
+                <svg viewBox="0 0 24 24" fill="none" width="15" height="15" style={{ flexShrink: 0, marginTop: 2 }} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                <span>Sector 16, Raje Shivaji Nagar, Chinchwad, Pune – 411019</span>
               </div>
-              <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--ink-3)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span>✉ connect@mentor4career.com</span>
-                <span>📞 +91-7999503527</span>
+              <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--ink-3)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  connect@mentor4career.com
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .99h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                  </svg>
+                  +91-7999503527
+                </span>
               </div>
 
               <div className="footer-social">
-                <a href="https://www.linkedin.com/company/mixins-technology-pune/" target="_blank" aria-label="LinkedIn">
-                  <svg viewBox="0 0 24 24" fill="blue" width="24" height="24">
-                    <path d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM10 9h3.8v1.7h.05c.53-1 1.83-2 3.77-2 4 0 4.78 2.6 4.78 6V21h-4v-5.3c0-1.27 0-2.9-1.8-2.9s-2.05 1.4-2.05 2.8V21h-4z" />
+                <a href="https://www.linkedin.com/company/mixins-technology-pune/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+                    <path fill="#fff" d="M7.75 5.5a1.75 1.75 0 110 3.5 1.75 1.75 0 010-3.5zM6.25 10h3v9h-3zM11 10h2.88v1.23h.04c.4-.76 1.38-1.56 2.83-1.56 3.03 0 3.59 2 3.59 4.59V19h-3v-4.22c0-1.01-.02-2.3-1.4-2.3-1.41 0-1.63 1.1-1.63 2.23V19h-3V10z"/>
                   </svg>
                 </a>
                 <a href="https://wa.me/7999503527" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">

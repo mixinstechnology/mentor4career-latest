@@ -15,10 +15,38 @@ const TECH = [
 ];
 
 const FEATURES = [
-  { icon: '💻', text: 'Real project development' },
-  { icon: '📚', text: 'Theory + concept learning' },
-  { icon: '🏆', text: 'Portfolio-ready projects'  },
-  { icon: '🤝', text: 'Placement assistance'      },
+  {
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+      </svg>
+    ),
+    text: 'Real project development',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+      </svg>
+    ),
+    text: 'Theory + concept learning',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 21h8M12 17v4M7 4H5a2 2 0 00-2 2v5c0 3.31 2.69 6 6 6h6c3.31 0 6-2.69 6-6V6a2 2 0 00-2-2h-2"/><path d="M7 4h10"/>
+      </svg>
+    ),
+    text: 'Portfolio-ready projects',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+      </svg>
+    ),
+    text: 'Placement assistance',
+  },
 ];
 
 const STYLES = `
@@ -93,7 +121,10 @@ export default function JobAdPopup({ onClose }) {
                   marginBottom: 14,
                 }}
               >
-                🎯 SPECIAL OFFER
+                <svg viewBox="0 0 24 24" fill="none" width="11" height="11" stroke="#1e1b4b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+                </svg>
+                SPECIAL OFFER
               </span>
 
               <h2 style={{
@@ -144,7 +175,11 @@ export default function JobAdPopup({ onClose }) {
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
                 onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-              >✕</button>
+              >
+                <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
 
             {/* features 2×2 grid */}
@@ -159,7 +194,7 @@ export default function JobAdPopup({ onClose }) {
                     transition: 'background .15s, transform .15s', cursor: 'default',
                   }}
                 >
-                  <span style={{ fontSize: 15, flexShrink: 0 }}>{f.icon}</span>
+                  <span style={{ flexShrink: 0, color: '#4F46E5', display: 'flex' }}>{f.icon}</span>
                   <span style={{ fontSize: 11.5, color: 'var(--ink-2)', fontWeight: 600, lineHeight: 1.35 }}>{f.text}</span>
                 </div>
               ))}

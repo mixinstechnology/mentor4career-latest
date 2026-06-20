@@ -112,6 +112,7 @@ export default function Home() {
   const { openAuth } = useAuth();
   const [exam, setExam] = useState('JEE');
   const [showJobAd, setShowJobAd] = useState(false);
+  const[showHowItWorks, setShowHowItWorks] = useState(false);
   const mentor = MENTORS();
 
   useEffect(() => {
@@ -316,7 +317,12 @@ const featured = mentor?.slice(0, 6) || []
                   <div className="mcs-label">Students Guided</div>
                 </div>
                 <div className="mcs-card reveal">
-                  <div className="mcs-num grad-text">4.9★</div>
+                  <div className="mcs-num grad-text" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    4.9
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2l2.9 6 6.6.95-4.75 4.63 1.12 6.54L12 17.25l-5.87 3.07 1.12-6.54L2.5 8.95 9.1 8z"/>
+                    </svg>
+                  </div>
                   <div className="mcs-label">Average Rating</div>
                 </div>
                 <div className="mcs-card reveal">
@@ -337,12 +343,21 @@ const featured = mentor?.slice(0, 6) || []
             </div>
             <div className="testi-grid">
               {[
-                { stars: '★★★★★', badge: 'Admitted', text: 'The AI predictor showed me exactly which colleges I had a real shot at. I found the right engineering college and avoided a wrong admission decision.', av: 'RD', col: 'linear-gradient(135deg,#4F46E5,#3B82F6)', n: 'Rohan Deshmukh', r: 'B.Tech CSE · COEP Pune' },
-                { stars: '★★★★★', badge: 'Hired', text: 'Mock interviews here helped me crack my first software developer job. The feedback after each round was honest and exactly what I needed to improve.', av: 'AT', col: 'linear-gradient(135deg,#0FA968,#06B6D4)', n: 'Aditi Talreja', r: 'SDE-1 · Razorpay' },
-                { stars: '★★★★★', badge: 'Admitted', text: 'My mentor gave me complete clarity about MBA admissions and career growth. I joined my dream B-school this year with full confidence.', av: 'FM', col: 'linear-gradient(135deg,#7C5CF7,#EC4899)', n: 'Faizan Mirza', r: 'MBA · IIM Indore' }
+                { badge: 'Admitted', text: 'The AI predictor showed me exactly which colleges I had a real shot at. I found the right engineering college and avoided a wrong admission decision.', av: 'RD', col: 'linear-gradient(135deg,#4F46E5,#3B82F6)', n: 'Rohan Deshmukh', r: 'B.Tech CSE · COEP Pune' },
+                { badge: 'Hired', text: 'Mock interviews here helped me crack my first software developer job. The feedback after each round was honest and exactly what I needed to improve.', av: 'AT', col: 'linear-gradient(135deg,#0FA968,#06B6D4)', n: 'Aditi Talreja', r: 'SDE-1 · Razorpay' },
+                { badge: 'Admitted', text: 'My mentor gave me complete clarity about MBA admissions and career growth. I joined my dream B-school this year with full confidence.', av: 'FM', col: 'linear-gradient(135deg,#7C5CF7,#EC4899)', n: 'Faizan Mirza', r: 'MBA · IIM Indore' }
               ].map((t, i) => (
                 <div className="card testi-card reveal" key={i}>
-                  <div className="testi-top"><div className="stars">{t.stars}</div><span className="badge-hired"><Check width="24" height="24" /> {t.badge}</span></div>
+                  <div className="testi-top">
+                    <div className="stars" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      {[...Array(5)].map((_, si) => (
+                        <svg key={si} viewBox="0 0 24 24" width="15" height="15" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2l2.9 6 6.6.95-4.75 4.63 1.12 6.54L12 17.25l-5.87 3.07 1.12-6.54L2.5 8.95 9.1 8z"/>
+                        </svg>
+                      ))}
+                    </div>
+                    <span className="badge-hired"><Check width="24" height="24" /> {t.badge}</span>
+                  </div>
                   <p>{t.text}</p>
                   <div className="testi-author"><span className="ta-av" style={{ background: t.col }}>{t.av}</span><div><div className="ta-n">{t.n}</div><div className="ta-r">{t.r}</div></div></div>
                 </div>

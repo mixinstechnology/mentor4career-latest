@@ -133,7 +133,7 @@ export default function Jobs() {
   const [showJobAd, setShowJobAd] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setShowJobAd(true), 3000);
+    const t = setTimeout(() => setShowJobAd(true), 2000);
     return () => clearTimeout(t);
   }, []);
   const [data,       setdata]       = useState([]);
