@@ -134,14 +134,14 @@ const mentordata =MENTORS()
                 </div>
               </div>
 
-              <div className="fgroup">
+              {/* <div className="fgroup">
                 <label>Minimum Rating</label>
                 <div className="chip-wrap">
                   {RATINGS.map((r) => (
                     <button key={r.v} className={'chip' + (rating === r.v ? ' active' : '')} onClick={() => setRating(r.v)}>{r.label}</button>
                   ))}
                 </div>
-              </div>
+              </div> */}
             </div>
           </aside>
 

@@ -1,13 +1,19 @@
 import React from 'react';
 import { useBooking } from '../context/BookingContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { AVATAR_COLORS, FOCUS_LABEL } from '../data/mentors.js';
 import { Check, Star, Cap, Calendar, Clock } from './Icons.jsx';
 
 export default function MentorCard({ mentor, colorIndex = 0 }) {
   const { openBooking } = useBooking();
+  const { user, openAuth } = useAuth();
   const color = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length];
 
-  const book = () =>
+  const book = () => {
+    if (!user) {
+      openAuth('login');
+      return;
+    }
     openBooking({
       id:    mentor.id,
       init:  mentor.init,
@@ -16,6 +22,8 @@ export default function MentorCard({ mentor, colorIndex = 0 }) {
       role:  `${mentor.role} · ${mentor.org}`,
       price: mentor.price,
     });
+  };
+
   return (
     <div className="card card-hover mentor-card">
       <span className="verified"><Check width="14" height="14" /> Verified</span>

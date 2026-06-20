@@ -22,7 +22,7 @@ const STATUS_CFG = {
   completed: { label: 'Completed', bg: '#F3F4F6', col: '#6B7280', dot: '#9CA3AF', border: '#D1D5DB' },
   cancelled: { label: 'Cancelled', bg: '#FEE2E2', col: '#DC2626', dot: '#EF4444', border: '#FCA5A5' },
 };
-const STATUS_KEYS = ['upcoming','ongoing','completed'];
+const STATUS_KEYS = ['upcoming','ongoing','completed','cancelled'];
 
 const BANNERS = [
   'linear-gradient(135deg,#4F46E5,#3B82F6)',
@@ -34,16 +34,7 @@ const BANNERS = [
 ];
 
 function computeStatus(w) {
-  if (w.status === 'cancelled') return 'cancelled';
-  if (!w.date) return w.status || 'upcoming';
-  try {
-    const start = new Date(`${w.date}T${w.time || '00:00'}`);
-    const end   = new Date(start.getTime() + (Number(w.duration) || 60) * 60 * 1000);
-    const now   = new Date();
-    if (now < start)               return 'upcoming';
-    if (now >= start && now < end) return 'ongoing';
-    return 'completed';
-  } catch { return w.status || 'upcoming'; }
+  return w.status
 }
 
 function fmtDate(date, time) {
@@ -85,7 +76,18 @@ function RegisterModal({ webinar, onClose }) {
   const [done,       setDone]       = useState(false);
   const overlayRef = useRef(null);
 
-  const isPaid = !webinar.isFree && Number(webinar.price) > 0;
+  const isPaid       = !webinar.isFree && Number(webinar.price) > 0;
+  const PLAT_PCT     = Number(import.meta.env.VITE_PLATFORM_FEE_PERCENTAGE) || 10;
+  const GST_PCT_W    = Number(import.meta.env.VITE_GST_PERCENTAGE)          || 18;
+  const GATEWAY_FEE_PCT = 2;
+  const webinarBase  = Number(webinar.price) || 0;
+  const webinarPlat  = isPaid ? Math.round(webinarBase * PLAT_PCT / 100) : 0;
+  const webinarSub   = webinarBase + webinarPlat;
+  const webinarGst   = isPaid ? Math.round(webinarSub * GST_PCT_W / 100) : 0;
+  const preTax       = isPaid ? webinarSub + webinarGst : 0;
+  const webinarGatewayCharge = isPaid ? Math.round(preTax * GATEWAY_FEE_PCT / 100) : 0;
+  const webinarTotal = isPaid ? preTax + webinarGatewayCharge : 0;
+  const money        = (n) => '₹' + n.toLocaleString('en-IN');
 
   const IS = {
     width: '100%', border: '1.5px solid var(--border)', borderRadius: 10,
@@ -93,25 +95,30 @@ function RegisterModal({ webinar, onClose }) {
     color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', background: '#fff',
   };
 
+  /* throws on failure so callers can show refund notice */
   const doRegister = async (transactionId = null) => {
-    try {
-      await httpService.post(`/webinar/${webinar.id}/register`, {
-        data: {
-          webinarId:     webinar.id,
-          userId:        getLoggedInUserId(),
-          username:      form.username,
-          contact:       form.contact,
-          email:         form.email,
-          ...(transactionId && { transactionId, paymentStatus: 'done' }),
-        },
-        token: true,
-      });
-      setDone(true);
-    } catch {
-      /* apiService already shows error toast */
-    } finally {
-      setSubmitting(false);
-    }
+    const loggedInId = getLoggedInUserId();
+    const isMentor   = user?.role === 'mentor';
+    await httpService.post(`/webinar/${webinar.id}/register`, {
+      data: {
+        webinarId:            webinar.id,
+        authUserId:           isMentor ? loggedInId : null,
+        userId:               isMentor ? null : loggedInId,
+        username:             form.username,
+        contact:              form.contact,
+        email:                form.email,
+        webinarFee:           webinarBase,
+        gstAmount:            webinarGst,
+        paymentGatewayCharge: webinarGatewayCharge,
+        discount:             0,
+        totalAmount:          webinarTotal,
+        couponCode:           '',
+        ...(transactionId && { paymentStatus: true }),
+      },
+      token: true,
+    });
+    setDone(true);
+    setSubmitting(false);
   };
 
   const handleSubmit = async (e) => {
@@ -119,7 +126,11 @@ function RegisterModal({ webinar, onClose }) {
     setSubmitting(true);
 
     if (!isPaid) {
-      await doRegister();
+      try {
+        await doRegister();
+      } catch {
+        setSubmitting(false);
+      }
       return;
     }
 
@@ -131,15 +142,57 @@ function RegisterModal({ webinar, onClose }) {
       return;
     }
 
+    /* create pending transaction — Razorpay will NOT open if this fails */
+    let txnDbId = null;
+    const loggedInId = getLoggedInUserId();
+    const isMentor   = user?.role === 'mentor';
+    try {
+      const txnRes = await httpService.post('/transaction', {
+        data: {
+          transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          authUserId:  isMentor ? loggedInId : null,
+          userId:      isMentor ? null : loggedInId,
+          formType:    'webinar',
+          referenceId: String(webinar.id),
+          amount:      webinarTotal,
+          currency:    'INR',
+          status:      'created',
+          gateway:     'razorpay',
+          remarks:     `Webinar registration: ${webinar.title}`,
+        },
+        token: true,
+      });
+      txnDbId = txnRes?.data?.transactionId ?? txnRes?.transactionId ?? null;
+    } catch {
+      toast.error('Unable to initiate payment. Please try again.');
+      setSubmitting(false);
+      return;
+    }
+
     const options = {
       key:         import.meta.env.VITE_RAZORPAY_TEST_KEY,
-      amount:      Number(webinar.price) * 100,
+      amount:      webinarTotal * 100,
       currency:    'INR',
       name:        'Mentor4Career',
       description: `Webinar: ${webinar.title}`,
       image:       '/logo.png',
       handler: async (response) => {
-        await doRegister(response.razorpay_payment_id);
+        /* update transaction to success */
+        if (txnDbId) {
+          try {
+            await httpService.put(`/transaction/status/${txnDbId}`, {
+              data: { status: 'success', razorPayTransactionId: response.razorpay_payment_id },
+              token: true,
+            });
+          } catch { /* non-critical */ }
+        }
+        /* register — if this fails after payment, show refund notice */
+        try {
+          await doRegister(response.razorpay_payment_id);
+        } catch {
+          toast.error('Something went wrong. If your amount was deducted, it will be refunded within 24 hours.');
+          setSubmitting(false);
+        }
       },
       prefill: { name: form.username, email: form.email, contact: form.contact },
       theme:   { color: '#4F46E5' },
@@ -147,7 +200,15 @@ function RegisterModal({ webinar, onClose }) {
     };
 
     const rzp = new window.Razorpay(options);
-    rzp.on('payment.failed', (res) => {
+    rzp.on('payment.failed', async (res) => {
+      if (txnDbId) {
+        try {
+          await httpService.put(`/transaction/${txnDbId}`, {
+            data: { status: 'failed' },
+            token: true,
+          });
+        } catch { /* non-critical */ }
+      }
       toast.error('Payment failed: ' + (res.error?.description || 'Please try again.'));
       setSubmitting(false);
     });
@@ -222,6 +283,24 @@ function RegisterModal({ webinar, onClose }) {
                 </div>
               )}
 
+              {/* fee breakdown for paid webinars */}
+              {isPaid && (
+                <div style={{ background: '#F8FAFF', border: '1px solid #E0E7FF', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-2)' }}>
+                    <span>Webinar fee</span><span>{money(webinarBase)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-2)' }}>
+                    <span>Platform + Gateway fee</span><span>{money(webinarPlat + webinarGatewayCharge)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-2)' }}>
+                    <span>GST ({GST_PCT_W}%)</span><span>{money(webinarGst)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: 'var(--ink)', borderTop: '1px solid #C7D2FE', paddingTop: 6, marginTop: 2 }}>
+                    <span>Total payable</span><span style={{ color: '#4F46E5' }}>{money(webinarTotal)}</span>
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={onClose}
                   style={{ flex: 1, padding: '12px 0', background: '#fff', border: '1.5px solid var(--border)', borderRadius: 12, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--ink-2)', cursor: 'pointer' }}>
@@ -231,7 +310,7 @@ function RegisterModal({ webinar, onClose }) {
                   style={{ flex: 2, padding: '12px 0', background: submitting ? '#C7D2FE' : 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff', border: 'none', borderRadius: 12, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: !submitting ? '0 4px 14px rgba(79,70,229,.35)' : 'none', transition: 'all .2s' }}>
                   {submitting
                     ? (isPaid ? 'Processing Payment…' : 'Registering…')
-                    : (isPaid ? `Pay ₹${webinar.price} & Register` : 'Confirm Registration')}
+                    : (isPaid ? `Pay ${money(webinarTotal)} & Register` : 'Confirm Registration')}
                 </button>
               </div>
             </form>
@@ -246,7 +325,7 @@ function RegisterModal({ webinar, onClose }) {
    Webinar Card
 ══════════════════════════════════ */
 function WebinarCard({ w, idx, onRegister }) {
-  const autoStatus = computeStatus(w);
+  const autoStatus = w.status; // computeStatus(w);
   const sCfg       = STATUS_CFG[autoStatus] || STATUS_CFG.upcoming;
   const banner     = BANNERS[idx % BANNERS.length];
   const isLive     = autoStatus === 'ongoing';
@@ -351,7 +430,7 @@ export default function Webinars() {
   const [webinars,     setWebinars]     = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
-  const [statusFilter, setStatusFilter] = useState('upcoming');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page,         setPage]         = useState(1);
   const [totalPages,   setTotalPages]   = useState(1);
   const [hasMore,      setHasMore]      = useState(false);
@@ -379,7 +458,7 @@ export default function Webinars() {
         list  = res;
       }
 
-      setWebinars(list.filter(w => computeStatus(w) !== 'cancelled'));
+      setWebinars(list);
       setPage(pg);
       setTotalPages(pages);
       setHasMore(pg < pages);
@@ -411,7 +490,7 @@ export default function Webinars() {
         eyebrow="Live & On-Demand"
         title={<>Learn live from <span className="grad-text">experts, toppers &amp; recruiters</span></>}
         sub="Free and premium sessions on admissions, placements, interviews and career growth — with live Q&A."
-        stats={[{ v: '120+', l: 'Sessions / mo' }, { v: '4.9/5', l: 'Avg. Rating' }, { v: '60k+', l: 'Attendees' }]}
+        // stats={[{ v: '120+', l: 'Sessions / mo' }, { v: '4.9/5', l: 'Avg. Rating' }, { v: '60k+', l: 'Attendees' }]}
       />
 
       <section className="section-pad" style={{ paddingTop: 24 }}>

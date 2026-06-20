@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Logo, Close, Mail, Lock, Person } from './Icons.jsx';
 import httpService from '../utils/apiService.tsx';
@@ -105,14 +106,23 @@ const STUDENT_TYPES = [
 ];
 
 export default function AuthModal() {
-  const { authTab, openAuth, closeAuth, signIn } = useAuth();
+  const { authTab, authInitRole, openAuth, closeAuth, signIn } = useAuth();
   const navigate = useNavigate();
 
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
+  const [fe,      setFe]      = useState({});
 
   const [loginRole,   setLoginRole]   = useState('user');
   const [signupRole,  setSignupRole]  = useState('student');
+
+  useEffect(() => {
+    if (authTab === 'signup') setSignupRole(authInitRole ?? 'student');
+  }, [authTab, authInitRole]);
+
+  // ── Forgot password ──
+  const [forgotStep,  setForgotStep]  = useState(null); // null | 'email'
+  const [forgotEmail, setForgotEmail] = useState('');
 
   // ── Login fields ──
   const [loginOtpStep,   setLoginOtpStep]   = useState('phone');
@@ -146,7 +156,8 @@ export default function AuthModal() {
     setSignupPhone(''); setSignupOtp(''); setSignupOtpStep('phone');
     setMentorEmail(''); setMentorPassword(''); setMentorContact('');
     setMentorGender('male'); setShowMentorPw(false);
-    setError('');
+    setForgotStep(null); setForgotEmail('');
+    setError(''); setFe({});
   };
 
   /* body scroll lock + Esc */
@@ -167,12 +178,13 @@ export default function AuthModal() {
     setSignupOtpStep('phone');
     setError('');
     setLoading(false);
+    setFe({});
   }, [authTab]);
 
   /* reset login fields when login role switches */
   useEffect(() => {
     setLoginOtpStep('phone');
-    setLoginPhone(''); setLoginOtp(''); setError('');
+    setLoginPhone(''); setLoginOtp(''); setError(''); setFe({});
   }, [loginRole]);
 
   /* reset signup fields when signup role switches */
@@ -181,7 +193,7 @@ export default function AuthModal() {
     setSignupFirstName(''); setSignupLastName('');
     setSignupType('student'); setSignupPhone(''); setSignupOtp('');
     setMentorEmail(''); setMentorPassword(''); setMentorContact('');
-    setMentorGender('male'); setError('');
+    setMentorGender('male'); setError(''); setFe({});
   }, [signupRole]);
 
   if (!authTab) return null;
@@ -195,7 +207,11 @@ export default function AuthModal() {
   /* ══════════ LOGIN handlers ══════════ */
 
   const sendLoginOTP = async () => {
-    setError(''); setLoading(true);
+    const errs = {};
+    if (!loginPhone.trim()) errs.phone = 'Mobile number is required.';
+    else if (!/^\d{10}$/.test(loginPhone.replace(/\D/g, ''))) errs.phone = 'Enter a valid 10-digit mobile number.';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({}); setError(''); setLoading(true);
     try {
       await httpService.post('/otp/sendOTP', { data: { mobile: loginPhone }, token: true });
       setLoginOtpStep('verify');
@@ -224,7 +240,12 @@ export default function AuthModal() {
   };
 
   const mentorLogin = async () => {
-    setError(''); setLoading(true);
+    const errs = {};
+    if (!loginEmail.trim()) errs.email = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail.trim())) errs.email = 'Enter a valid email address.';
+    if (!loginPassword) errs.password = 'Password is required.';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({}); setError(''); setLoading(true);
     try {
       const res = await httpService.post('authUser/login', {
         data: { email: loginEmail, password: loginPassword },
@@ -241,11 +262,35 @@ export default function AuthModal() {
     } finally { setLoading(false); }
   };
 
+  /* ══════════ FORGOT / RESET PASSWORD handlers ══════════ */
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      await httpService.post('/authUser/forgot-password', {
+        data: { email: forgotEmail.trim() },
+        token: false,
+      });
+      toast.success('Reset email has been sent to your email.');
+      closeAuth();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to send reset email. Please try again.');
+    } finally { setLoading(false); }
+  };
+
   /* ══════════ STUDENT SIGNUP handlers ══════════ */
 
   const sendSignupOTP = async (e) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    const errs = {};
+    if (!signupFirstName.trim()) errs.firstName = 'First name is required.';
+    else if (signupFirstName.trim().length < 2) errs.firstName = 'First name must be at least 2 characters.';
+    if (!signupLastName.trim()) errs.lastName = 'Last name is required.';
+    if (!signupPhone.trim()) errs.phone = 'Mobile number is required.';
+    else if (!/^\d{10}$/.test(signupPhone.replace(/\D/g, ''))) errs.phone = 'Enter a valid 10-digit mobile number.';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({}); setError(''); setLoading(true);
     try {
       await httpService.post('/otp/sendOTP', {
         data: { mobile: signupPhone, method: 'signup' },
@@ -291,7 +336,18 @@ export default function AuthModal() {
 
   const handleMentorSignup = async (e) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    const errs = {};
+    if (!signupFirstName.trim()) errs.firstName = 'First name is required.';
+    else if (signupFirstName.trim().length < 2) errs.firstName = 'First name too short.';
+    if (!signupLastName.trim()) errs.lastName = 'Last name is required.';
+    if (!mentorEmail.trim()) errs.email = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mentorEmail.trim())) errs.email = 'Enter a valid email address.';
+    if (!mentorPassword) errs.password = 'Password is required.';
+    else if (mentorPassword.length < 8) errs.password = 'Password must be at least 8 characters.';
+    if (!mentorContact.trim()) errs.contact = 'Contact number is required.';
+    else if (!/^\d{10}$/.test(mentorContact.replace(/\D/g, ''))) errs.contact = 'Enter a valid 10-digit number.';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({}); setError(''); setLoading(true);
     try {
       /* Step 1 — create account */
       await httpService.post('/mentorProfile', {
@@ -351,70 +407,102 @@ export default function AuthModal() {
           {/* ═══════════ LOGIN ═══════════ */}
           {authTab === 'login' && (
             <div className="auth-form am-pane">
-              <Roles
-                value={loginRole}
-                onChange={setLoginRole}
-                options={[
-                  { id: 'user',   label: 'Student / Job Seeker' },
-                  { id: 'mentor', label: 'Mentor'                },
-                ]}
-              />
 
-              {/* Student / Job Seeker — OTP login */}
-              {loginRole === 'user' && loginOtpStep === 'phone' && (
-                <div className="am-form-gap">
-                  <div className="input-wrap">
-                    <PhoneIcon />
-                    <input type="tel" placeholder="Mobile number" value={loginPhone}
-                      onChange={(e) => setLoginPhone(e.target.value)} required maxLength={15} />
-                  </div>
-                  <button type="button" onClick={sendLoginOTP}
-                    className="btn btn-primary btn-lg btn-block"
-                    disabled={!loginPhone.trim() || loading}>
-                    {loading ? 'Sending…' : 'Send OTP'}
-                  </button>
-                </div>
-              )}
-
-              {loginRole === 'user' && loginOtpStep === 'verify' && (
-                <div className="am-form-gap">
-                  <p className="am-otp-hint">OTP sent to <strong>{loginPhone}</strong></p>
-                  <OtpInput value={loginOtp} onChange={setLoginOtp} autoFocus />
-                  <button type="button" onClick={verifyLoginOTP}
-                    className="btn btn-primary btn-lg btn-block"
-                    disabled={loginOtp.length !== 6 || loading}>
-                    {loading ? 'Verifying…' : 'Verify OTP'}
-                  </button>
-                  <button type="button" className="am-back-link"
-                    onClick={() => { setLoginOtpStep('phone'); setLoginOtp(''); setError(''); }}>
-                    ← Change number
-                  </button>
-                </div>
-              )}
-
-              {/* Mentor — email / password login */}
-              {loginRole === 'mentor' && (
-                <div className="am-form-gap">
+              {/* ── Forgot password: email step ── */}
+              {forgotStep === 'email' && (
+                <form onSubmit={handleForgotPassword} className="am-form-gap">
+                  <p className="am-otp-hint">Enter your registered email to receive a password reset link.</p>
                   <div className="input-wrap">
                     <Mail width="24" height="24" />
-                    <input type="email" placeholder="Email address" value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)} required />
+                    <input type="email" placeholder="Email address" value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)} required autoFocus />
                   </div>
-                  <div className="input-wrap">
-                    <Lock width="24" height="24" />
-                    <input type={showLoginPw ? 'text' : 'password'} placeholder="Password"
-                      value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
-                    <EyeBtn shown={showLoginPw} onClick={() => setShowLoginPw((v) => !v)} />
-                  </div>
-                  <div className="auth-row">
-                    <label><input type="checkbox" /> Remember me</label>
-                    <a href="#">Forgot password?</a>
-                  </div>
-                  <button type="button" onClick={mentorLogin}
-                    className="btn btn-primary btn-lg btn-block" disabled={loading}>
-                    {loading ? 'Logging in…' : 'Log in'}
+                  <button type="submit" className="btn btn-primary btn-lg btn-block"
+                    disabled={!forgotEmail.trim() || loading}>
+                    {loading ? 'Sending…' : 'Send Reset Email'}
                   </button>
-                </div>
+                  <button type="button" className="am-back-link"
+                    onClick={() => { setForgotStep(null); setForgotEmail(''); setError(''); }}>
+                    ← Back to login
+                  </button>
+                </form>
+              )}
+
+              {/* ── Normal login forms (hidden during forgot-password flow) ── */}
+              {!forgotStep && (
+                <>
+                  <Roles
+                    value={loginRole}
+                    onChange={setLoginRole}
+                    options={[
+                      { id: 'user',   label: 'Student / Job Seeker' },
+                      { id: 'mentor', label: 'Mentor'                },
+                    ]}
+                  />
+
+                  {/* Student / Job Seeker — OTP login */}
+                  {loginRole === 'user' && loginOtpStep === 'phone' && (
+                    <div className="am-form-gap">
+                      <div className="input-wrap">
+                        <PhoneIcon />
+                        <input type="tel" placeholder="Mobile number" value={loginPhone}
+                          onChange={(e) => { setLoginPhone(e.target.value); setFe(f => ({ ...f, phone: '' })); }} required maxLength={15} />
+                      </div>
+                      {fe.phone && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.phone}</div>}
+                      <button type="button" onClick={sendLoginOTP}
+                        className="btn btn-primary btn-lg btn-block"
+                        disabled={!loginPhone.trim() || loading}>
+                        {loading ? 'Sending…' : 'Send OTP'}
+                      </button>
+                    </div>
+                  )}
+
+                  {loginRole === 'user' && loginOtpStep === 'verify' && (
+                    <div className="am-form-gap">
+                      <p className="am-otp-hint">OTP sent to <strong>{loginPhone}</strong></p>
+                      <OtpInput value={loginOtp} onChange={setLoginOtp} autoFocus />
+                      <button type="button" onClick={verifyLoginOTP}
+                        className="btn btn-primary btn-lg btn-block"
+                        disabled={loginOtp.length !== 6 || loading}>
+                        {loading ? 'Verifying…' : 'Verify OTP'}
+                      </button>
+                      <button type="button" className="am-back-link"
+                        onClick={() => { setLoginOtpStep('phone'); setLoginOtp(''); setError(''); }}>
+                        ← Change number
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Mentor — email / password login */}
+                  {loginRole === 'mentor' && (
+                    <div className="am-form-gap">
+                      <div className="input-wrap">
+                        <Mail width="24" height="24" />
+                        <input type="email" placeholder="Email address" value={loginEmail}
+                          onChange={(e) => { setLoginEmail(e.target.value); setFe(f => ({ ...f, email: '' })); }} required />
+                      </div>
+                      {fe.email && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.email}</div>}
+                      <div className="input-wrap">
+                        <Lock width="24" height="24" />
+                        <input type={showLoginPw ? 'text' : 'password'} placeholder="Password"
+                          value={loginPassword} onChange={(e) => { setLoginPassword(e.target.value); setFe(f => ({ ...f, password: '' })); }} required />
+                        <EyeBtn shown={showLoginPw} onClick={() => setShowLoginPw((v) => !v)} />
+                      </div>
+                      {fe.password && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.password}</div>}
+                      <div className="auth-row">
+                        <label> </label>
+                        <button type="button" className="am-forgot-link"
+                          onClick={() => { setForgotStep('email'); setError(''); }}>
+                          Forgot password?
+                        </button>
+                      </div>
+                      <button type="button" onClick={mentorLogin}
+                        className="btn btn-primary btn-lg btn-block" disabled={loading}>
+                        {loading ? 'Logging in…' : 'Log in'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -460,13 +548,19 @@ export default function AuthModal() {
                     <div className="input-wrap">
                       <Person width="24" height="24" />
                       <input type="text" placeholder="First name" value={signupFirstName}
-                        onChange={(e) => setSignupFirstName(e.target.value)} required />
+                        onChange={(e) => { setSignupFirstName(e.target.value); setFe(f => ({ ...f, firstName: '' })); }} required />
                     </div>
                     <div className="input-wrap am-no-icon">
                       <input type="text" placeholder="Last name" value={signupLastName}
-                        onChange={(e) => setSignupLastName(e.target.value)} required />
+                        onChange={(e) => { setSignupLastName(e.target.value); setFe(f => ({ ...f, lastName: '' })); }} required />
                     </div>
                   </div>
+                  {(fe.firstName || fe.lastName) && (
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ flex: 1, color: '#EF4444', fontSize: 12, fontWeight: 500 }}>{fe.firstName}</div>
+                      <div style={{ flex: 1, color: '#EF4444', fontSize: 12, fontWeight: 500 }}>{fe.lastName}</div>
+                    </div>
+                  )}
                   <div className="input-wrap">
                     <select value={signupType} onChange={(e) => setSignupType(e.target.value)}
                       required className="am-select">
@@ -476,8 +570,9 @@ export default function AuthModal() {
                   <div className="input-wrap">
                     <PhoneIcon />
                     <input type="tel" placeholder="Mobile number" value={signupPhone}
-                      onChange={(e) => setSignupPhone(e.target.value)} required maxLength={15} />
+                      onChange={(e) => { setSignupPhone(e.target.value); setFe(f => ({ ...f, phone: '' })); }} required maxLength={15} />
                   </div>
+                  {fe.phone && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.phone}</div>}
                   <button type="submit" className="btn btn-primary btn-lg btn-block"
                     disabled={!signupFirstName.trim() || !signupLastName.trim() || !signupPhone.trim() || loading}>
                     {loading ? 'Sending…' : 'Send OTP'}
@@ -509,29 +604,38 @@ export default function AuthModal() {
                     <div className="input-wrap">
                       <Person width="24" height="24" />
                       <input type="text" placeholder="First name" value={signupFirstName}
-                        onChange={(e) => setSignupFirstName(e.target.value)} required />
+                        onChange={(e) => { setSignupFirstName(e.target.value); setFe(f => ({ ...f, firstName: '' })); }} required />
                     </div>
                     <div className="input-wrap am-no-icon">
                       <input type="text" placeholder="Last name" value={signupLastName}
-                        onChange={(e) => setSignupLastName(e.target.value)} required />
+                        onChange={(e) => { setSignupLastName(e.target.value); setFe(f => ({ ...f, lastName: '' })); }} required />
                     </div>
                   </div>
+                  {(fe.firstName || fe.lastName) && (
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ flex: 1, color: '#EF4444', fontSize: 12, fontWeight: 500 }}>{fe.firstName}</div>
+                      <div style={{ flex: 1, color: '#EF4444', fontSize: 12, fontWeight: 500 }}>{fe.lastName}</div>
+                    </div>
+                  )}
                   <div className="input-wrap">
                     <Mail width="24" height="24" />
                     <input type="email" placeholder="Email address" value={mentorEmail}
-                      onChange={(e) => setMentorEmail(e.target.value)} required />
+                      onChange={(e) => { setMentorEmail(e.target.value); setFe(f => ({ ...f, email: '' })); }} required />
                   </div>
+                  {fe.email && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.email}</div>}
                   <div className="input-wrap">
                     <Lock width="24" height="24" />
                     <input type={showMentorPw ? 'text' : 'password'} placeholder="Create a password"
-                      value={mentorPassword} onChange={(e) => setMentorPassword(e.target.value)} required />
+                      value={mentorPassword} onChange={(e) => { setMentorPassword(e.target.value); setFe(f => ({ ...f, password: '' })); }} required />
                     <EyeBtn shown={showMentorPw} onClick={() => setShowMentorPw((v) => !v)} />
                   </div>
+                  {fe.password && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.password}</div>}
                   <div className="input-wrap">
                     <PhoneIcon />
                     <input type="tel" placeholder="Contact number" value={mentorContact}
-                      onChange={(e) => setMentorContact(e.target.value)} required maxLength={15} />
+                      onChange={(e) => { setMentorContact(e.target.value); setFe(f => ({ ...f, contact: '' })); }} required maxLength={15} />
                   </div>
+                  {fe.contact && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.contact}</div>}
                   <div className="input-wrap">
                     <select value={mentorGender} onChange={(e) => setMentorGender(e.target.value)}
                       required className="am-select">

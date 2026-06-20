@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Logo, Burger, Close } from './Icons.jsx';
+import { Burger, Close } from './Icons.jsx';
+import M4CLogo from '../utils/images/M4C_logo_transparent.png';
 import ThemeSwitcher from './ThemeSwitcher.jsx';
 
 /* ── public nav links ── */
 const LINKS = [
-  { to: '/predictor', label: 'AI Predictor' },
-  { to: '/mentors',   label: 'Mentorship'   },
-  { to: '/jobs',      label: 'Jobs'          },
-  { to: '/webinars',  label: 'Webinars'      },
-  { to: '/contact',   label: 'Contact Us'    },
+  // { to: '/predictor', label: 'AI Predictor' },
+  { to: '/mentors',   label: 'Mentorship'          },
+  { to: '/jobs',      label: 'Jobs'                },
+  { to: '/webinars',  label: 'Webinars'            },
+  { to: '/interview', label: 'Interview Preparation'},
+  { to: '/contact',   label: 'Contact Us'          },
 ];
 
 const DASHBOARD_PATHS = ['/dashboard', '/mentor-dashboard', '/admin-dashboard'];
@@ -198,7 +200,7 @@ export default function Navbar() {
         <div className="db-topbar-inner">
           {/* logo */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-            <span style={{ display: 'flex' }}><Logo width="22" height="22" /></span>
+            <img src={M4CLogo} alt="Mentor4Career" style={{ width: 52, height: 52, objectFit: 'contain', display: 'block' }} />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
               Mentor<b style={{ color: 'var(--indigo,#4F46E5)' }}>4</b>Career
             </span>
@@ -236,7 +238,7 @@ export default function Navbar() {
       <header className={'nav' + (scrolled ? ' scrolled' : '')} id="nav">
         <div className="wrap nav-inner">
           <Link to="/" className="brand">
-            <span className="logo"><Logo width="24" height="24" /></span>
+            <img src={M4CLogo} alt="Mentor4Career" style={{ width: 52, height: 52, objectFit: 'contain', display: 'block' }} />
             <span>Mentor<b>4</b>Career</span>
           </Link>
 
@@ -278,7 +280,7 @@ export default function Navbar() {
       <div className={'scrim' + (menuOpen ? ' open' : '')} onClick={closeMenu} />
       <aside className={'mobile-menu' + (menuOpen ? ' open' : '')}>
         <div className="mm-head">
-          <span className="brand"><span className="logo"><Logo width="24" height="24" /></span> Mentor<b>4</b>Career</span>
+          <span className="brand"><img src={M4CLogo} alt="Mentor4Career" style={{ width: 48, height: 48, objectFit: 'contain', display: 'block' }} /> Mentor<b>4</b>Career</span>
           <button className="mm-close" onClick={closeMenu}><Close width="20" height="20" /></button>
         </div>
         {LINKS.map((l) => (

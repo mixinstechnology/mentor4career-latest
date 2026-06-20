@@ -24,7 +24,7 @@ import Support from './pages/Support.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import MentorDashboard from './pages/MentorDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
-
+import ResetPassword from './pages/ResetPassword.jsx';
 const DASHBOARD_PATHS = ['/dashboard', '/mentor-dashboard', '/admin-dashboard'];
 
 function ProtectedRoute({ role, children }) {
@@ -59,6 +59,7 @@ function AppLayout() {
         <Route path="/interview" element={<Interview />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/faq" element={<Faq />} />
+       <Route path="/reset-password" element={<ResetPassword/>} />
         <Route path="/support" element={<Support />} />
         <Route path="/dashboard" element={<ProtectedRoute role="student"><Dashboard /></ProtectedRoute>} />
         <Route path="/mentor-dashboard" element={<ProtectedRoute role="mentor"><MentorDashboard /></ProtectedRoute>} />

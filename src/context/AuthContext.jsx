@@ -6,7 +6,8 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
-  const [authTab, setAuthTab] = useState(null);
+  const [authTab,      setAuthTab]      = useState(null);
+  const [authInitRole, setAuthInitRole] = useState('student');
   const [user, setUser] = useState(() => {
     try {
       return sessionStorage.getItem('m4c_authed')
@@ -20,7 +21,10 @@ export function AuthProvider({ children }) {
     }
   });
 
-  const openAuth = useCallback((tab = 'login') => setAuthTab(tab), []);
+  const openAuth = useCallback((tab = 'login', role = 'student') => {
+    setAuthInitRole(role);
+    setAuthTab(tab);
+  }, []);
   const closeAuth = useCallback(() => setAuthTab(null), []);
 
   const signIn = useCallback((role, name = '') => {
@@ -45,7 +49,7 @@ export function AuthProvider({ children }) {
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ authTab, openAuth, closeAuth, user, signIn, signOut }}>
+    <AuthContext.Provider value={{ authTab, authInitRole, openAuth, closeAuth, user, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

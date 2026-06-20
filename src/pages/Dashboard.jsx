@@ -98,6 +98,15 @@ function fmtDate(val) {
   } catch { return val; }
 }
 
+/* sort any array newest-first; uses createdAt if present, falls back to id */
+function newestFirst(arr) {
+  return [...arr].sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : (Number(a.id) || 0);
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : (Number(b.id) || 0);
+    return tb - ta;
+  });
+}
+
 /* ── Session status derivation ── */
 function deriveStatus(s) {
   if (s.paymentStatus === 'done' && !s.isSessionDone) return 'upcoming';
@@ -165,7 +174,7 @@ function SLockedField({ label, value }) {
   );
 }
 
-function SField({ label, value, onChange, type = 'text', placeholder, as, rows, hint }) {
+function SField({ label, value, onChange, type = 'text', placeholder, as, rows, hint, error }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -197,6 +206,7 @@ function SField({ label, value, onChange, type = 'text', placeholder, as, rows, 
         />
       )}
       {hint && <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{hint}</span>}
+      {error && <span style={{ fontSize: 11.5, color: '#EF4444', fontWeight: 500 }}>{error}</span>}
     </div>
   );
 }
@@ -287,8 +297,9 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
     dob: '', education: '', address: '',
     city: '', district: '', state: '',
   });
-  const [avatarUrl,   setAvatarUrl]   = useState(null);
-  const [avatarHover, setAvatarHover] = useState(false);
+  const [avatarUrl,    setAvatarUrl]    = useState(null);
+  const [avatarObject, setAvatarObject] = useState(null);
+  const [avatarHover,  setAvatarHover]  = useState(false);
   const [uploading,   setUploading]   = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [isDirty,     setIsDirty]     = useState(false);
@@ -305,6 +316,7 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
   });
   const [jobSaving, setJobSaving] = useState(false);
   const [jobDirty,  setJobDirty]  = useState(false);
+  const [fe,        setFe]        = useState({});
 
   const pct      = calcStudentCompletion(profile, jobProfile, studentDetails, form);
   const pctColor = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#4F46E5';
@@ -323,7 +335,14 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
       district:  profile.district   || '',
       state:     profile.state      || '',
     });
-    setAvatarUrl(profile.profilePhoto || profile.profileImage || null);
+    const photo = profile.profilePhoto || profile.profileImage || null;
+    if (photo && typeof photo === 'object' && photo.url) {
+      setAvatarUrl(photo.url);
+      setAvatarObject(photo);
+    } else {
+      setAvatarUrl(photo);
+      setAvatarObject(null);
+    }
     setIsDirty(false);
   }, [profile]);
 
@@ -352,7 +371,14 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
           district:  sd.district   || f.district,
           state:     sd.state      || f.state,
         }));
-        if (sd.profilePhoto) setAvatarUrl(sd.profilePhoto);
+        if (sd.profilePhoto) {
+          if (typeof sd.profilePhoto === 'object' && sd.profilePhoto.url) {
+            setAvatarUrl(sd.profilePhoto.url);
+            setAvatarObject(sd.profilePhoto);
+          } else {
+            setAvatarUrl(sd.profilePhoto);
+          }
+        }
         setIsDirty(false);
       })
       .catch(() => {});
@@ -389,8 +415,8 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
       .catch(() => {});
   }, [userId]); // eslint-disable-line
 
-  const set    = (k) => (v) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true); };
-  const setJob = (k) => (v) => { setJobForm(f => ({ ...f, [k]: v })); setJobDirty(true); };
+  const set    = (k) => (v) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true); setFe(f => ({ ...f, [k]: '' })); };
+  const setJob = (k) => (v) => { setJobForm(f => ({ ...f, [k]: v })); setJobDirty(true); setFe(f => ({ ...f, [k]: '' })); };
 
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
@@ -398,10 +424,10 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('files', file);
       const res = await httpService.postFormData('/upload/image', fd, { token: true });
-      const url = res?.uploaded?.[0]?.url ?? null;
-      if (url) { setAvatarUrl(url); setIsDirty(true); }
+      const obj = res?.uploaded?.[0] ?? null;
+      if (obj?.url) { setAvatarUrl(obj.url); setAvatarObject(obj); setIsDirty(true); }
     } catch { /* apiService shows toast */ }
     finally { setUploading(false); }
   };
@@ -409,6 +435,12 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!userId) return;
+    const errs = {};
+    if (!form.firstName.trim()) errs.firstName = 'First name is required.';
+    if (!form.lastName.trim())  errs.lastName  = 'Last name is required.';
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errs.email = 'Enter a valid email address.';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({});
     setSaving(true);
     try {
       const payload = {
@@ -421,7 +453,7 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
         city:         form.city       || null,
         district:     form.district   || null,
         state:        form.state      || null,
-        profilePhoto: avatarUrl       || null,
+        profilePhoto: avatarObject     || avatarUrl || null,
       };
 
       await httpService.post('/studentDetails', { data: payload, token: true });
@@ -436,6 +468,13 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
   const handleJobSubmit = async (e) => {
     e.preventDefault();
     if (!userId) return;
+    const errs = {};
+    if (jobForm.experience !== '' && (isNaN(Number(jobForm.experience)) || Number(jobForm.experience) < 0))
+      errs.experience = 'Enter a valid number (0 or more).';
+    if (jobForm.resume && !/^https?:\/\/.+/.test(jobForm.resume.trim()))
+      errs.resume = 'Enter a valid URL starting with http:// or https://';
+    if (Object.keys(errs).length) { setFe(errs); return; }
+    setFe({});
     setJobSaving(true);
     try {
       const payload = {
@@ -542,9 +581,9 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
 
         {/* ── Account info ── */}
         <SFormSection title="Account info" cols={2}>
-          <SField label="First name" value={form.firstName} onChange={set('firstName')} placeholder="e.g. Mohit" />
-          <SField label="Last name"  value={form.lastName}  onChange={set('lastName')}  placeholder="e.g. Patel" />
-          <SField label="Email"      value={form.email}     onChange={set('email')}     type="email" placeholder="you@example.com" />
+          <SField label="First name" value={form.firstName} onChange={set('firstName')} placeholder="e.g. Mohit" error={fe.firstName} />
+          <SField label="Last name"  value={form.lastName}  onChange={set('lastName')}  placeholder="e.g. Patel" error={fe.lastName} />
+          <SField label="Email"      value={form.email}     onChange={set('email')}     type="email" placeholder="you@example.com" error={fe.email} />
           <SLockedField label="Contact" value={getContactFromToken() || profile?.contact} />
           <SField label="Date of birth" value={form.dob}      onChange={set('dob')}      type="date" />
           <SField label="Education"     value={form.education} onChange={set('education')} placeholder="e.g. B.Sc. Computer Science" />
@@ -620,6 +659,7 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
               onChange={setJob('experience')}
               type="number"
               placeholder="e.g. 2"
+              error={fe.experience}
             />
           </SFormSection>
 
@@ -648,6 +688,7 @@ function StudentProfileSection({ userId, profile, loading, onSaved }) {
               type="url"
               placeholder="e.g. https://drive.google.com/your-resume"
               hint="Paste a public link to your resume (Google Drive, Notion, etc.)"
+              error={fe.resume}
             />
           </SFormSection>
 
@@ -768,7 +809,7 @@ function SessionList() {
 
       const res        = await httpService.get(`/mentorSession/user/${userId}`, { params, token: true });
       const raw        = res?.data ?? [];
-      const items      = raw.filter(s => matchesFilter(s, fil));
+      const items      = newestFirst(raw.filter(s => matchesFilter(s, fil)));
       const totalPages = res?.pagination?.totalPages ?? 1;
 
       setSessions(prev => replace ? items : [...prev, ...items]);
@@ -991,7 +1032,7 @@ function MentorSection() {
     setLoading(true);
     try {
       const res   = await httpService.get('/mentorProfile', { params: { page, limit: 10 }, token: true });
-      const rows  = (res?.rows ?? []).filter(m => m.isVerified);
+      const rows  = newestFirst((res?.rows ?? []).filter(m => m.isVerified));
       const total = res?.count ?? 0;
       setMentors(prev => replace ? rows : [...prev, ...rows]);
       hasMoreRef.current = page * 10 < total;
@@ -1052,10 +1093,10 @@ function MentorSection() {
                 {m.chargePerSession ? `₹${m.chargePerSession}/session` : 'Free'}
               </div>
             </div>
-            <div className="db-card-end">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: rating ? '#F59E0B' : 'var(--ink-3)' }}>
+            <div className="db-card-end ">
+              {/* <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: rating ? '#F59E0B' : 'var(--ink-3)' }}>
                 <StarIcon /><span>{rating ? rating.toFixed(1) : '—'}</span>
-              </div>
+              </div> */}
               <button className="btn btn-primary btn-sm" onClick={() => handleBook(m)}>
                 Book Now
               </button>
@@ -1089,16 +1130,16 @@ function fmtWbDate(date, time) {
 }
 
 function computeWbStatus(w) {
-  if (w.status === 'cancelled') return 'cancelled';
-  if (!w.date) return w.status || 'upcoming';
-  try {
-    const start = new Date(`${w.date}T${w.time || '00:00'}`);
-    const end   = new Date(start.getTime() + (Number(w.duration) || 60) * 60 * 1000);
-    const now   = new Date();
-    if (now < start) return 'upcoming';
-    if (now >= start && now < end) return 'ongoing';
-    return 'completed';
-  } catch { return w.status || 'upcoming'; }
+  // if (w.status === 'cancelled') return 'cancelled';
+  // if (!w.date) return w.status || 'upcoming';
+  // try {
+  //   const start = new Date(`${w.date}T${w.time || '00:00'}`);
+  //   const end   = new Date(start.getTime() + (Number(w.duration) || 60) * 60 * 1000);
+  //   const now   = new Date();
+    
+  //   return w.status
+  // } catch { return w.status || 'upcoming'; }
+  return w.status || 'upcoming';
 }
 
 function WebinarsView() {
@@ -1117,9 +1158,10 @@ function WebinarsView() {
       const res   = await httpService.get('/webinar', { params, token: true });
       /* API: { success, webinars: { total, pages, webinars: [...] } } */
       const inner = res?.webinars;
-      const data  = Array.isArray(inner?.webinars) ? inner.webinars
+      const raw   = Array.isArray(inner?.webinars) ? inner.webinars
                   : Array.isArray(inner)            ? inner
                   : Array.isArray(res)              ? res : [];
+      const data  = newestFirst(raw);
       const pages = inner?.pages ?? 1;
       setWebinars(prev => replace ? data : [...prev, ...data]);
       setTotalPages(pages);
@@ -1169,7 +1211,7 @@ function WebinarsView() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {webinars.map(w => {
-            const autoStatus = computeWbStatus(w);
+            const autoStatus = w.status;
             const cfg        = WB_STATUS_CFG[autoStatus] || WB_STATUS_CFG.upcoming;
             return (
               <div key={w.id} className="card" style={{ padding: '18px 20px', borderLeft: `3.5px solid ${cfg.border}` }}>
@@ -1200,8 +1242,8 @@ function WebinarsView() {
                   ))}
                 </div>
 
-                {/* join link — hidden for completed/failed; non-clickable for upcoming */}
-                {w.link && autoStatus !== 'completed' && autoStatus !== 'failed' && (
+                {/* join link — hidden for completed/cancelled/failed; non-clickable for upcoming */}
+                {w.link && autoStatus !== 'completed' && autoStatus !== 'cancelled' && autoStatus !== 'failed' && (
                   <a href={autoStatus === 'upcoming' ? undefined : w.link} target="_blank" rel="noreferrer"
                     className="wb-join-btn"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: autoStatus === 'ongoing' ? 'linear-gradient(135deg,#10B981,#059669)' : 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff', borderRadius: 10, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, textDecoration: 'none', boxShadow: '0 2px 8px rgba(79,70,229,.25)', ...(autoStatus === 'upcoming' && { pointerEvents: 'none', opacity: 0.55, cursor: 'default' }) }}>
@@ -1256,7 +1298,7 @@ function ApplicationsView() {
       const res = await httpService.get('/jobsInterested', { token: true });
       let raw = res?.data ?? res ?? [];
       if (!Array.isArray(raw)) raw = [];
-      setApplications(raw.filter(a => String(a.userId) === String(userId)));
+      setApplications(newestFirst(raw.filter(a => String(a.userId) === String(userId))));
     } catch {}
     finally { setLoading(false); }
   };
@@ -1412,7 +1454,7 @@ export default function Dashboard() {
       .get(`/mentorSession/user/${userId}`, { params: { page: 1, limit: 10, paymentStatus: 'done' }, token: true })
       .then(res => {
         const items = res?.data ?? [];
-        setOvUpcoming(items.filter(s => !s.isSessionDone));
+        setOvUpcoming(newestFirst(items.filter(s => !s.isSessionDone)));
         setOvCompleted(items.filter(s => s.isSessionDone).length);
         setOvTotal(res?.pagination?.total ?? items.length);
       })

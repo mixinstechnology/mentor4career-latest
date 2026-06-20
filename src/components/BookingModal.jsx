@@ -7,7 +7,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { Check, Close, Person, Calendar, Clock, Lock } from './Icons.jsx';
 import httpService from '../utils/apiService.tsx';
 
-const PLATFORM_FEE = 49;
+const PLATFORM_FEE_PCT = Number(import.meta.env.VITE_PLATFORM_FEE_PERCENTAGE) || 10;
+const GST_PCT          = Number(import.meta.env.VITE_GST_PERCENTAGE)          || 18;
+const GATEWAY_FEE_PCT  = 2; // Razorpay standard charge (% of pre-tax total)
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -23,6 +25,28 @@ function parseDate(str) {
 function fmtDateLabel(str) {
   const d = parseDate(str);
   return `${DOW[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`;
+}
+
+/* returns true if the slot time on the given date has already passed */
+function isSlotPast(dateStr, label) {
+  try {
+    const now = new Date();
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    const slotDay = new Date(y, mo - 1, d);
+    const today   = new Date(); today.setHours(0, 0, 0, 0);
+    if (slotDay < today) return true;   // whole date is in the past
+    if (slotDay > today) return false;  // future date, never past
+    // today — parse the time label (supports "10:30 AM" and "14:30")
+    const t    = label.trim();
+    const isPM = /pm/i.test(t);
+    const isAM = /am/i.test(t);
+    const nums = t.replace(/[^\d:]/g, '').split(':');
+    let h = Number(nums[0]) || 0;
+    const min = Number(nums[1]) || 0;
+    if (isPM && h !== 12) h += 12;
+    if (isAM && h === 12) h = 0;
+    return new Date(y, mo - 1, d, h, min) <= now;
+  } catch { return false; }
 }
 
 /* decode JWT payload to get logged-in user's id */
@@ -121,7 +145,7 @@ console.log(availDates)
     const userId = getUserIdFromToken();
     if (!userId) return;
     httpService
-      .get(`/mentorSession/mentor/${mentor.id}`, {token: true })
+      .get(`/mentorSession/mentor/${mentor.id}`, { token: true })
       .then(res => {
         const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
         setMySlotIds(new Set(list.map(s => String(s.slotId)).filter(Boolean)));
@@ -140,9 +164,14 @@ console.log(availDates)
 
   if (!mentor) return null;
 
-  const isFree   = mentor.price === 0;
-  const total    = isFree ? 0 : mentor.price + PLATFORM_FEE;
-  const isMySlot = (s) => mySlotIds.has(String(s.slotId));
+  const isFree      = mentor.price === 0;
+  const platformFee = isFree ? 0 : Math.round(mentor.price * PLATFORM_FEE_PCT / 100);
+  const subTotal    = isFree ? 0 : mentor.price + platformFee;
+  const gstAmount   = isFree ? 0 : Math.round(subTotal * GST_PCT / 100);
+  const preTaxTotal = isFree ? 0 : subTotal + gstAmount;
+  const paymentGatewayCharge = isFree ? 0 : Math.round(preTaxTotal * GATEWAY_FEE_PCT / 100);
+  const total       = isFree ? 0 : preTaxTotal + paymentGatewayCharge;
+  const isMySlot    = (s) => mySlotIds.has(String(s.slotId));
 
   /* a slot is bookable only if it's not taken by anyone AND not already booked by this user */
   const canContinue = selDate && selSlot && !selSlot.isBooked && !isMySlot(selSlot);
@@ -150,31 +179,33 @@ console.log(availDates)
     ? { dateLabel: fmtDateLabel(selDate.date), time: selSlot.label }
     : null;
 
-  /* ── POST /mentorSession after payment ── */
+  /* ── POST /mentorSession after payment — throws on failure ── */
   const bookSession = async (transactionId) => {
     const userId = getUserIdFromToken();
-    try {
-      await httpService.post('/mentorSession', {
-        data: {
-          authUserId:    mentor.id,
-          userId:        userId,
-          date:          selDate.date,
-          slotId:        selSlot.slotId,
-          time:          selSlot.label,
-          description:   'Career guidance session',
-          paymentStatus: 'done',
-          transactionId: transactionId,
-          amount:        total,
-        },
-        token: true,
-      });
-      const id = 'M4C-' + (Date.now() + '').slice(-6);
-      setBookingId(id);
-      toast.success('Session booked successfully!');
-      setStep(3);
-    } catch {
-      /* apiService already shows an error toast */
-    }
+    await httpService.post('/mentorSession', {
+      data: {
+        authUserId:    mentor.id,
+        userId:        userId,
+        date:          selDate.date,
+        slotId:        selSlot.slotId,
+        time:          selSlot.label,
+        description:   'Career guidance session',
+        paymentStatus: 'done',
+        transactionId: transactionId,
+        amount:        total,
+        mentorFee: mentor?.price,
+        platformFee: platformFee,
+        gstAmount: gstAmount,
+        paymentGatewayCharge: paymentGatewayCharge,
+        discount: 0,
+        couponCode: ""
+      },
+      token: true,
+    });
+    const id = 'M4C-' + (Date.now() + '').slice(-6);
+    setBookingId(id);
+    toast.success('Session booked successfully!');
+    setStep(3);
   };
 
   /* ── PUT /transaction/status/:transactionId after the gateway closes ── */
@@ -199,9 +230,16 @@ console.log(availDates)
   /* ── Pay button handler ── */
   const handlePayAndBook = async () => {
     setPaying(true);
+    const userId = getUserIdFromToken();
     try {
       if (isFree) {
-        await bookSession('FREE');
+        try {
+          await bookSession('FREE');
+        } catch {
+          toast.error('Something went wrong. Please try again.');
+        } finally {
+          setPaying(false);
+        }
         return;
       }
 
@@ -238,6 +276,32 @@ console.log(availDates)
         return;
       }
 
+      /* create pending transaction — Razorpay will NOT open if this fails */
+      let txnDbId = null;
+      try {
+        const txnRes = await httpService.post('/transaction', {
+          data: {
+            transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            authUserId: mentor.id,
+            userId,
+      
+            formType:    'mentorbooking',
+            referenceId: selSlot.slotId,
+            amount:      total,
+            currency:    'INR',
+            status:      'pending',
+            gateway:     'razorpay',
+            remarks:     `Mentor booking payment for ${mentor.name}`,
+          },
+          token: true,
+        });
+        txnDbId = txnRes?.data?.transactionId ?? txnRes?.transactionId ?? null;
+      } catch {
+        toast.error('Unable to initiate payment. Please try again.');
+        setPaying(false);
+        return;
+      }
+
       const options = {
         key:         import.meta.env.VITE_RAZORPAY_TEST_KEY,
         amount:      total * 100,
@@ -246,11 +310,29 @@ console.log(availDates)
         description: `Session with ${mentor.name}`,
         image:       '/logo.png',
         handler: async (response) => {
-          /* 3. gateway UI closed (success) — update the transaction */
-          await updateTransactionStatus(transactionId, 'success', response);
-          await bookSession(transactionId);
+          /* update transaction to success */
+          if (txnDbId) {
+            try {
+              await httpService.put(`/transaction/status/${txnDbId}`, {
+                data: { status: 'success', razorPayTransactionId: response.razorpay_payment_id },
+                token: true,
+              });
+            } catch { /* non-critical */ }
+          }
+          /* book session — if booking API fails after payment, show refund notice */
+          try {
+            await bookSession(response.razorpay_payment_id);
+          } catch {
+            toast.error('Something went wrong. If your amount was deducted, it will be refunded within 24 hours.');
+            setPaying(false);
+          }
         },
         prefill:  { name: user?.name || '' },
+        notes: {
+          'Mentor Charge':        String(mentor.price),
+          'Platform + Gateway Fee': String(platformFee + paymentGatewayCharge),
+          'GST':                  String(gstAmount),
+        },
         theme:    { color: '#4F46E5' },
         modal:    {
           ondismiss: async () => {
@@ -263,8 +345,15 @@ console.log(availDates)
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', async (res) => {
-        /* 3. gateway UI closed (failed) — update the transaction */
-        await updateTransactionStatus(transactionId, 'failed', res);
+        /* mark transaction as failed */
+        if (txnDbId) {
+          try {
+            await httpService.put(`/transaction/${txnDbId}`, {
+              data: { status: 'failed' },
+              token: true,
+            });
+          } catch { /* non-critical */ }
+        }
         toast.error('Payment failed: ' + (res.error?.description || 'Please try again.'));
         setPaying(false);
       });
@@ -331,7 +420,15 @@ console.log(availDates)
               {loadingSlots ? (
                 <div className="bk-sub" style={{ padding: '20px 0' }}>Loading available dates…</div>
               ) : (() => {
-                const futureDates = availDates.filter(entry => !!entry.date);
+                const todayMidnight = new Date();
+                todayMidnight.setHours(0, 0, 0, 0);
+                const futureDates = availDates.filter(entry => {
+                  const d = parseDate(entry.date);
+                  if (d < todayMidnight) return false;                       // past date — hide
+                  if (d > todayMidnight) return true;                        // future date — always show
+                  // today — only show if at least one slot is still open and not yet passed
+                  return entry.slots.some(s => !s.isBooked && !isMySlot(s) && !isSlotPast(entry.date, s.label));
+                });
                 if (futureDates.length === 0) {
                   return (
                     <div className="bk-sub" style={{ padding: '20px 0', color: 'var(--ink-2)' }}>
@@ -342,9 +439,8 @@ console.log(availDates)
                 return (
                   <div className="bk-dates">
                     {futureDates.map((entry) => {
-                      const d = new Date(entry.date);
-                      const slots = Array.isArray(entry.slots) ? entry.slots : [];
-                      const openCount = slots.filter(s => !s.isBooked && !isMySlot(s)).length;
+                      const d = parseDate(entry.date);
+                      const openCount = entry.slots.filter(s => !s.isBooked && !isMySlot(s) && !isSlotPast(entry.date, s.label)).length;
                       return (
                         <button
                           key={entry.id}
@@ -370,7 +466,8 @@ console.log(availDates)
                   </div>
                 ) : (selDate.slots || []).map((s) => {
                   const mine   = isMySlot(s);
-                  const booked = s.isBooked || mine;
+                  const past   = isSlotPast(selDate.date, s.label);
+                  const booked = s.isBooked || mine || past;
                   return (
                     <button
                       key={s.slotId}
@@ -379,7 +476,7 @@ console.log(availDates)
                       onClick={() => setSelSlot(s)}
                     >
                       {s.label}
-                      <small>{mine ? 'Registered' : s.isBooked ? 'Booked' : 'Open'}</small>
+                      <small>{mine ? 'Registered' : past ? 'Passed' : s.isBooked ? 'Booked' : 'Open'}</small>
                     </button>
                   );
                 })}
@@ -405,8 +502,9 @@ console.log(availDates)
                 <div className="bk-fees"><div className="bk-fr tot"><span>Total</span><span>Free</span></div></div>
               ) : (
                 <div className="bk-fees">
-                  <div className="bk-fr"><span>Session fee</span><span>{money(mentor.price)}</span></div>
-                  <div className="bk-fr"><span>Platform &amp; convenience fee</span><span>{money(PLATFORM_FEE)}</span></div>
+                  <div className="bk-fr"><span>Mentor charge</span><span>{money(mentor.price)}</span></div>
+                  <div className="bk-fr"><span>Platform + Gateway fee</span><span>{money(platformFee + paymentGatewayCharge)}</span></div>
+                  <div className="bk-fr"><span>GST ({GST_PCT}%)</span><span>{money(gstAmount)}</span></div>
                   <div className="bk-fr tot"><span>Total payable</span><span>{money(total)}</span></div>
                 </div>
               )}
@@ -463,7 +561,6 @@ console.log(availDates)
                 disabled={isRestrictedRole || (!!user && !canContinue)}
                 onClick={() => {
                   if (!user) {
-                    closeBooking();
                     openAuth('login');
                     return;
                   }

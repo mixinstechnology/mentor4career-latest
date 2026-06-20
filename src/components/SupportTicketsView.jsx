@@ -43,6 +43,13 @@ const fmtDate = (str) => {
 };
 const normStatus = (s) => (s in STATUS_CFG ? s : 'active');
 
+const newestFirst = (arr) =>
+  [...arr].sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : (Number(a.id) || 0);
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : (Number(b.id) || 0);
+    return tb - ta;
+  });
+
 export default function SupportTicketsView({ userId, userProfile = {} }) {
   const [tickets,        setTickets]        = useState([]);
   const [loading,        setLoading]        = useState(false);
@@ -62,7 +69,7 @@ export default function SupportTicketsView({ userId, userProfile = {} }) {
       const params = { page: pg, limit: 10, activeOnly: true };
       if (userId) params.userId = userId;
       const res  = await httpService.get('/supportTicket', { params, token: true });
-      const data = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+      const data = newestFirst(Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : []);
       setTickets(prev => replace ? data : [...prev, ...data]);
       setHasMore(data.length === 10);
       setPage(pg);
