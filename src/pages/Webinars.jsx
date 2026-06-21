@@ -232,13 +232,31 @@ function RegisterModal({ webinar, onClose }) {
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, lineHeight: 1.35, marginBottom: 8 }}>{webinar.title}</div>
           <div style={{ fontSize: 12.5, opacity: 0.85, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <span>👤 {webinar.presenter}</span>
-            <span>📅 {fmtDate(webinar.date, webinar.time)}</span>
-            {webinar.duration && <span>⏱ {webinar.duration} min</span>}
-            <span>{webinar.isFree ? '✅ Free' : `💰 ₹${webinar.price}`}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg viewBox="0 0 24 24" fill="none" width="13" height="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              {webinar.presenter}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg viewBox="0 0 24 24" fill="none" width="13" height="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              {fmtDate(webinar.date, webinar.time)}
+            </span>
+            {webinar.duration && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <svg viewBox="0 0 24 24" fill="none" width="13" height="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                {webinar.duration} min
+              </span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {webinar.isFree
+                ? <><svg viewBox="0 0 24 24" fill="none" width="13" height="13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg> Free</>
+                : <><svg viewBox="0 0 24 24" fill="none" width="13" height="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> ₹{webinar.price}</>
+              }
+            </span>
           </div>
           <button onClick={onClose}
-            style={{ position: 'absolute', top: 16, right: 20, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: '#fff', fontSize: 18, display: 'grid', placeItems: 'center' }}>×</button>
+            style={{ position: 'absolute', top: 16, right: 20, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: '#fff', display: 'grid', placeItems: 'center' }}>
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
 
         {/* body */}
@@ -391,7 +409,8 @@ function WebinarCard({ w, idx, onRegister }) {
           )}
           {w.maxRegistration && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F1F5F9', color: 'var(--ink-2)', fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 99 }}>
-              👥 {w.maxRegistration} seats
+              <svg viewBox="0 0 24 24" fill="none" width="11" height="11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+              {w.maxRegistration} seats
             </span>
           )}
         </div>
@@ -531,7 +550,9 @@ export default function Webinars() {
             </div>
           ) : error ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <div style={{ fontSize: 44, marginBottom: 12 }}>⚠️</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                <svg viewBox="0 0 24 24" fill="none" width="52" height="52" stroke="#F59E0B" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--ink-2)', marginBottom: 8 }}>{error}</div>
               <button onClick={() => fetchWebinars(1, statusFilter)}
                 style={{ marginTop: 8, padding: '10px 24px', background: 'var(--grad)', color: '#fff', border: 'none', borderRadius: 10, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
@@ -540,7 +561,9 @@ export default function Webinars() {
             </div>
           ) : webinars.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '72px 0' }}>
-              <div style={{ fontSize: 52, marginBottom: 14 }}>📹</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                <svg viewBox="0 0 24 24" fill="none" width="60" height="60" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              </div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: 'var(--ink-2)', marginBottom: 8 }}>No webinars found</div>
               <div style={{ fontSize: 14, color: 'var(--ink-3)' }}>Try a different filter or check back soon.</div>
             </div>

@@ -214,7 +214,7 @@ const mentordata =MENTORS()
               </div>
             </div>
             <div className="b-actions">
-              <div className="earn"><div className="e-v">₹18,400</div><div className="e-l">Avg. monthly earning of an active mentor</div></div>
+              <div className="earn"><div className="e-v">₹18,400<sup>*</sup></div><div className="e-l">Avg. monthly earning of an active mentor</div></div>
               <a href="#" className="btn btn-white btn-lg btn-block">Become a Mentor</a>
               <a href="#" className="btn btn-clear btn-lg btn-block" style={{ borderColor: 'rgba(255,255,255,.3)', color: '#fff', background: 'rgba(255,255,255,.08)' }}>How it works</a>
             </div>
