@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import { BookingProvider } from './context/BookingContext.jsx';
+import { BookingProvider, useBooking } from './context/BookingContext.jsx';
 import { LoaderProvider } from './context/LoaderContext.tsx';
 import Loader from './utils/Loader.jsx';
 import useReveal from './hooks/useReveal.js';
@@ -46,6 +46,15 @@ function ScrollToTop() {
 function AppLayout() {
   const { pathname } = useLocation();
   const isDashboard = DASHBOARD_PATHS.includes(pathname);
+  const { user, pendingBooking, setPendingBooking } = useAuth();
+  const { openBooking } = useBooking();
+
+  useEffect(() => {
+    if (user && pendingBooking) {
+      openBooking(pendingBooking);
+      setPendingBooking(null);
+    }
+  }, [user, pendingBooking]); // eslint-disable-line
 
   return (
     <>

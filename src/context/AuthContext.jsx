@@ -6,14 +6,18 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
-  const [authTab,      setAuthTab]      = useState(null);
-  const [authInitRole, setAuthInitRole] = useState('student');
+  const [authTab,        setAuthTab]        = useState(null);
+  const [authInitRole,   setAuthInitRole]   = useState('student');
+  const [pendingBooking, setPendingBooking] = useState(null);
+  const [pendingWebinar, setPendingWebinar] = useState(null);
+  const [returnPath,     setReturnPath]     = useState(null);
   const [user, setUser] = useState(() => {
     try {
       return sessionStorage.getItem('m4c_authed')
         ? {
             role: sessionStorage.getItem('m4c_role') || 'student',
             name: sessionStorage.getItem('m4c_name') || '',
+            id  : sessionStorage.getItem('m4c_authed') || '' 
           }
         : null;
     } catch {
@@ -30,7 +34,7 @@ export function AuthProvider({ children }) {
   const signIn = useCallback((role, name = '') => {
     try {
       sessionStorage.setItem('m4c_role', role);
-      sessionStorage.setItem('m4c_authed', '1');
+      // sessionStorage.setItem('m4c_authed', '1');
       if (name) sessionStorage.setItem('m4c_name', name);
     } catch {}
     setUser({ role, name });
@@ -42,6 +46,10 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem('m4c_authed');
       sessionStorage.removeItem('m4c_role');
       sessionStorage.removeItem('m4c_name');
+      sessionStorage.removeItem('m4c_firstName');
+      sessionStorage.removeItem('m4c_lastName');
+      sessionStorage.removeItem('m4c_contact');
+      sessionStorage.removeItem('m4c_email');
       Cookies.remove('token');
     } catch {}
     setUser(null);
@@ -49,7 +57,7 @@ export function AuthProvider({ children }) {
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ authTab, authInitRole, openAuth, closeAuth, user, signIn, signOut }}>
+    <AuthContext.Provider value={{ authTab, authInitRole, openAuth, closeAuth, user, signIn, signOut, pendingBooking, setPendingBooking, pendingWebinar, setPendingWebinar, returnPath, setReturnPath }}>
       {children}
     </AuthContext.Provider>
   );

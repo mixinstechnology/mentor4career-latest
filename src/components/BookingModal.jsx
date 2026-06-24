@@ -61,6 +61,30 @@ function getUserIdFromToken() {
   }
 }
 
+/* decode JWT payload to get logged-in user's email */
+function getEmailFromToken() {
+  try {
+    const token = Cookies.get('token');
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email ?? payload.mail ?? payload.emailAddress ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/* fire-and-forget mail helper — non-fatal */
+async function sendMail(to, subject, html) {
+  try {
+    const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
+    if (!recipients.length) return;
+    await httpService.post('/contactUs/send-mail', {
+      data: { to: recipients, subject, html },
+      token: true,
+    });
+  } catch { /* non-fatal */ }
+}
+
 /* load Razorpay checkout script once */
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -180,7 +204,8 @@ console.log(availDates)
     : null;
 
   /* ── POST /mentorSession after payment — throws on failure ── */
-  const bookSession = async (transactionId) => {
+  
+  const bookSession = async (razorpayId, dbTxnId = null) => {
     const userId = getUserIdFromToken();
     await httpService.post('/mentorSession', {
       data: {
@@ -191,7 +216,8 @@ console.log(availDates)
         time:          selSlot.label,
         description:   'Career guidance session',
         paymentStatus: 'done',
-        transactionId: transactionId,
+        razorPayTransactionId: razorpayId,
+        transactionId: dbTxnId,
         amount:        total,
         mentorFee: mentor?.price,
         platformFee: platformFee,
@@ -206,6 +232,46 @@ console.log(availDates)
     setBookingId(id);
     toast.success('Session booked successfully!');
     setStep(3);
+
+    /* ── send booking confirmation emails ── */
+    const studentEmail = getEmailFromToken();
+    const dateLabel    = fmtDateLabel(selDate.date);
+    const timeLabel    = selSlot.label;
+    // to student
+    sendMail(
+      [studentEmail],
+      `Session Confirmed – ${mentor.name}`,
+      `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">
+        <h2 style="color:#4F46E5">Session Booking Confirmed!</h2>
+        <p>Hi,</p>
+        <p>Your <b>${duration}-min session</b> with <b>${mentor.name}</b> (${mentor.role}) has been confirmed.</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0">
+          <tr><td style="padding:8px 0;color:#6B7280;width:120px">Date</td><td style="padding:8px 0;font-weight:600">${dateLabel}</td></tr>
+          <tr><td style="padding:8px 0;color:#6B7280">Time</td><td style="padding:8px 0;font-weight:600">${timeLabel}</td></tr>
+          <tr><td style="padding:8px 0;color:#6B7280">Amount</td><td style="padding:8px 0;font-weight:600">${isFree ? 'Free' : '₹' + total}</td></tr>
+          <tr><td style="padding:8px 0;color:#6B7280">Booking ID</td><td style="padding:8px 0;font-weight:600">${id}</td></tr>
+        </table>
+        <p style="color:#6B7280;font-size:13px">A video call link will be shared before your session. Thank you for using Mentor4Career!</p>
+      </div>`
+    );
+    // to mentor
+    if (mentor.email) {
+      sendMail(
+        [mentor.email],
+        `New Session Booked – ${dateLabel} at ${timeLabel}`,
+        `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">
+          <h2 style="color:#4F46E5">New Session Booking</h2>
+          <p>Hi ${mentor.name},</p>
+          <p>A new <b>${duration}-min session</b> has been booked with you.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:8px 0;color:#6B7280;width:120px">Date</td><td style="padding:8px 0;font-weight:600">${dateLabel}</td></tr>
+            <tr><td style="padding:8px 0;color:#6B7280">Time</td><td style="padding:8px 0;font-weight:600">${timeLabel}</td></tr>
+            <tr><td style="padding:8px 0;color:#6B7280">Amount</td><td style="padding:8px 0;font-weight:600">${isFree ? 'Free' : '₹' + mentor.price}</td></tr>
+          </table>
+          <p style="color:#6B7280;font-size:13px">Please log in to your dashboard to view the session details. Thank you!</p>
+        </div>`
+      );
+    }
   };
 
   /* ── PUT /transaction/status/:transactionId after the gateway closes ── */
@@ -234,7 +300,7 @@ console.log(availDates)
     try {
       if (isFree) {
         try {
-          await bookSession('FREE');
+          await bookSession('FREE', null);
         } catch {
           toast.error('Something went wrong. Please try again.');
         } finally {
@@ -321,7 +387,7 @@ console.log(availDates)
           }
           /* book session — if booking API fails after payment, show refund notice */
           try {
-            await bookSession(response.razorpay_payment_id);
+            await bookSession(response.razorpay_payment_id, txnDbId);
           } catch {
             toast.error('Something went wrong. If your amount was deducted, it will be refunded within 24 hours.');
             setPaying(false);
@@ -356,6 +422,19 @@ console.log(availDates)
         }
         toast.error('Payment failed: ' + (res.error?.description || 'Please try again.'));
         setPaying(false);
+        /* ── send payment-failed email to student ── */
+        sendMail(
+          [getEmailFromToken()],
+          `Payment Failed – Session with ${mentor.name}`,
+          `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">
+            <h2 style="color:#DC2626">Payment Failed</h2>
+            <p>Hi,</p>
+            <p>Unfortunately, your payment for the session with <b>${mentor.name}</b> could not be processed.</p>
+            <p style="color:#6B7280">Reason: ${res.error?.description || 'Payment declined by gateway.'}</p>
+            <p>Please try booking again. If the amount was deducted, it will be refunded within 5–7 business days.</p>
+            <p style="color:#6B7280;font-size:13px">Thank you for using Mentor4Career.</p>
+          </div>`
+        );
       });
       rzp.open();
     } catch {
@@ -422,12 +501,18 @@ console.log(availDates)
               ) : (() => {
                 const todayMidnight = new Date();
                 todayMidnight.setHours(0, 0, 0, 0);
+                // a slot is only valid if it has actual start/end times (not a "cleared" slot)
+                const isValidSlot = (s) => !!(s.startTime && s.endTime && s.label && s.label.trim() !== '-');
                 const futureDates = availDates.filter(entry => {
                   const d = parseDate(entry.date);
-                  if (d < todayMidnight) return false;                       // past date — hide
-                  if (d > todayMidnight) return true;                        // future date — always show
-                  // today — only show if at least one slot is still open and not yet passed
-                  return entry.slots.some(s => !s.isBooked && !isMySlot(s) && !isSlotPast(entry.date, s.label));
+                  if (d < todayMidnight) return false;  // past date — hide
+                  const slots = entry.slots || [];
+                  if (d > todayMidnight) {
+                    // future date — only show if at least one valid open slot exists
+                    return slots.some(s => isValidSlot(s) && !s.isBooked && !isMySlot(s));
+                  }
+                  // today — only show if at least one valid slot is still open and not yet passed
+                  return slots.some(s => isValidSlot(s) && !s.isBooked && !isMySlot(s) && !isSlotPast(entry.date, s.label));
                 });
                 if (futureDates.length === 0) {
                   return (
@@ -440,7 +525,11 @@ console.log(availDates)
                   <div className="bk-dates">
                     {futureDates.map((entry) => {
                       const d = parseDate(entry.date);
-                      const openCount = entry.slots.filter(s => !s.isBooked && !isMySlot(s) && !isSlotPast(entry.date, s.label)).length;
+                      const slots = entry.slots || [];
+                      const openCount = slots.filter(s => {
+                        if (!s.startTime || !s.endTime || !s.label || s.label.trim() === '-') return false;
+                        return !s.isBooked && !isMySlot(s) && !isSlotPast(entry.date, s.label);
+                      }).length;
                       return (
                         <button
                           key={entry.id}
@@ -464,7 +553,7 @@ console.log(availDates)
                   <div className="bk-sub" style={{ gridColumn: '1/-1', margin: 0 }}>
                     Select a date to see open slots.
                   </div>
-                ) : (selDate.slots || []).map((s) => {
+                ) : (selDate.slots || []).filter(s => s.startTime && s.endTime && s.label && s.label.trim() !== '-').map((s) => {
                   const mine   = isMySlot(s);
                   const past   = isSlotPast(selDate.date, s.label);
                   const booked = s.isBooked || mine || past;

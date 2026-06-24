@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Logo, Close, Mail, Lock, Person } from './Icons.jsx';
+import { Close, Mail, Lock, Person } from './Icons.jsx';
+import M4CLogo from '../utils/images/M4C_logo_transparent.png';
 import httpService from '../utils/apiService.tsx';
 import Cookies from 'js-cookie';
 
@@ -106,7 +107,7 @@ const STUDENT_TYPES = [
 ];
 
 export default function AuthModal() {
-  const { authTab, authInitRole, openAuth, closeAuth, signIn } = useAuth();
+  const { authTab, authInitRole, openAuth, closeAuth, signIn, returnPath, setReturnPath } = useAuth();
   const navigate = useNavigate();
 
   const [error,   setError]   = useState('');
@@ -201,7 +202,12 @@ export default function AuthModal() {
   const goTo = (role, name = '') => {
     resetAllFields();
     signIn(role, name);
-    navigate(role === 'mentor' ? '/mentor-dashboard' : role === 'admin' ? '/admin-dashboard' : '/dashboard');
+    if (returnPath) {
+      setReturnPath(null);
+      navigate(returnPath);
+    } else {
+      navigate(role === 'mentor' ? '/mentor-dashboard' : role === 'admin' ? '/admin-dashboard' : '/dashboard');
+    }
   };
 
   /* ══════════ LOGIN handlers ══════════ */
@@ -230,7 +236,12 @@ export default function AuthModal() {
       const token = res?.token;
       if (token) {
         Cookies.set('token', token);
-        goTo(res?.user?.type || 'student', res?.user?.name || '');
+        sessionStorage.setItem('m4c_authed',    res?.user?.id);
+        sessionStorage.setItem('m4c_firstName', res?.user?.firstName || '');
+        sessionStorage.setItem('m4c_lastName',  res?.user?.lastName  || '');
+        sessionStorage.setItem('m4c_contact',   res?.user?.contact   || res?.user?.mobile || loginPhone);
+        sessionStorage.setItem('m4c_email',     res?.user?.email     || '')
+        goTo(res?.user?.type || 'student', res?.user?.name || '')
       } else {
         setError('Invalid OTP. Please try again.');
       }
@@ -251,6 +262,7 @@ export default function AuthModal() {
         data: { email: loginEmail, password: loginPassword },
       });
       const token = res?.token;
+      sessionStorage.setItem('m4c_authed', res?.data?.id);
       if (token) {
         Cookies.set('token', token);
         goTo(res?.data?.role || 'mentor', res?.data?.name || '');
@@ -383,14 +395,14 @@ export default function AuthModal() {
   /* ══════════ RENDER ══════════ */
   return (
     <div className="auth-modal open" aria-hidden="false">
-      <div className="am-scrim" onClick={closeAuth} />
+      <div className="am-scrim"  />
       <div className="am-dialog" role="dialog" aria-modal="true" aria-label="Sign in to Mentor4Career">
         <div className="am-bar" />
         <div className="am-inner">
           <button className="am-x" onClick={closeAuth} aria-label="Close"><Close width="20" height="20" /></button>
 
           <div className="am-brand">
-            <span className="am-brand-icon"><Logo width="20" height="20" /></span>
+            <img src={M4CLogo} alt="Mentor4Career" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
             <div>
               <div className="am-brand-name">Mentor<span>4Career</span></div>
               <div className="am-brand-tagline">Your career, guided.</div>
@@ -630,19 +642,23 @@ export default function AuthModal() {
                     <EyeBtn shown={showMentorPw} onClick={() => setShowMentorPw((v) => !v)} />
                   </div>
                   {fe.password && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.password}</div>}
-                  <div className="input-wrap">
-                    <PhoneIcon />
-                    <input type="tel" placeholder="Contact number" value={mentorContact}
-                      onChange={(e) => { setMentorContact(e.target.value); setFe(f => ({ ...f, contact: '' })); }} required maxLength={15} />
-                  </div>
-                  {fe.contact && <div style={{ color: '#EF4444', fontSize: 12, marginTop: -4, fontWeight: 500 }}>{fe.contact}</div>}
-                  <div className="input-wrap">
-                    <select value={mentorGender} onChange={(e) => setMentorGender(e.target.value)}
-                      required className="am-select">
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <div className="input-wrap">
+                        <PhoneIcon />
+                        <input type="tel" placeholder="Contact number" value={mentorContact}
+                          onChange={(e) => { setMentorContact(e.target.value); setFe(f => ({ ...f, contact: '' })); }} required maxLength={15} />
+                      </div>
+                      {fe.contact && <div style={{ color: '#EF4444', fontSize: 12, marginTop: 3, fontWeight: 500 }}>{fe.contact}</div>}
+                    </div>
+                    <div className="input-wrap">
+                      <select value={mentorGender} onChange={(e) => setMentorGender(e.target.value)}
+                        required className="am-select">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
                   </div>
                   <button type="submit" className="btn btn-primary btn-lg btn-block"
                     disabled={

@@ -6,11 +6,13 @@ import { Check, Star, Cap, Calendar, Clock } from './Icons.jsx';
 
 export default function MentorCard({ mentor, colorIndex = 0 }) {
   const { openBooking } = useBooking();
-  const { user, openAuth } = useAuth();
+  const { user, openAuth, setPendingBooking, setReturnPath } = useAuth();
   const color = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length];
 
   const book = () => {
     if (!user) {
+      setPendingBooking({ id: mentor.id, init: mentor.init, color, name: mentor.name, role: `${mentor.role} · ${mentor.org}`, price: mentor.price, email: mentor.email || null });
+      setReturnPath(window.location.pathname);
       openAuth('login');
       return;
     }
@@ -21,6 +23,7 @@ export default function MentorCard({ mentor, colorIndex = 0 }) {
       name:  mentor.name,
       role:  `${mentor.role} · ${mentor.org}`,
       price: mentor.price,
+      email: mentor.email || null,
     });
   };
 
@@ -37,7 +40,7 @@ export default function MentorCard({ mentor, colorIndex = 0 }) {
       </div>
       <div className="m-bio">{mentor.bio}</div>
       <div className="m-tags">
-        {mentor.focus.slice(0, 3).map((f) => <span className="kv" key={f}>{FOCUS_LABEL[f]}</span>)}
+        {mentor?.focus?.slice(0, 3).map((f) => <span className="kv" key={f}>{FOCUS_LABEL[f]}</span>)}
       </div>
       <div className="m-meta">
         <span className="mm star">
