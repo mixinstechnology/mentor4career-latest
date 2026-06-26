@@ -342,7 +342,7 @@ function RegisterModal({ webinar, onClose }) {
 /* ══════════════════════════════════
    Webinar Card
 ══════════════════════════════════ */
-function WebinarCard({ w, idx, onRegister }) {
+function WebinarCard({ w, alreadyRegistered, idx, onRegister }) {
   const autoStatus = w.status; // computeStatus(w);
   const sCfg       = STATUS_CFG[autoStatus] || STATUS_CFG.upcoming;
   const banner     = BANNERS[idx % BANNERS.length];
@@ -354,34 +354,47 @@ function WebinarCard({ w, idx, onRegister }) {
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(0,0,0,.12)'; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,.06)'; }}>
 
-      {/* gradient banner */}
-      <div style={{ background: banner, padding: '18px 18px 14px', position: 'relative', minHeight: 106 }}>
-        {isLive && (
-          <span style={{ position: 'absolute', top: 12, left: 12, width: 9, height: 9, borderRadius: '50%', background: '#fff', boxShadow: '0 0 0 3px rgba(255,255,255,.3)', animation: 'wbPulse 1.2s ease-in-out infinite' }} />
+      {/* banner — image if available, gradient fallback */}
+      <div style={{ background: banner, position: 'relative', minHeight: 106, overflow: 'hidden' }}>
+        {/* image layer */}
+        {w.image?.url && (
+          <img src={w.image.url} alt={w.title}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', zIndex: 0 }} />
         )}
-        {/* top badges */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 14 }}>
-          {isLive
-            ? <span style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#DCFCE7', color: '#15803D', fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 99 }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E', animation: 'wbPulse 1.2s ease-in-out infinite' }} /> LIVE
-              </span>
-            : <span style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 99 }}>
-                {sCfg.label}
-              </span>
-          }
-          <span style={{ background: w.isFree ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.22)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 99 }}>
-            {w.isFree ? 'FREE' : `₹${w.price}`}
-          </span>
-        </div>
+        {/* dark gradient overlay for readability */}
+        <div style={{ position: 'absolute', inset: 0, background: w.image?.url
+          ? 'linear-gradient(180deg,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.62) 100%)'
+          : 'none', zIndex: 1 }} />
 
-        {/* presenter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', border: '2px solid rgba(255,255,255,0.45)', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: '#fff', flexShrink: 0 }}>
-            {initials(w.presenter)}
+        {/* content above image */}
+        <div style={{ position: 'relative', zIndex: 2, padding: '18px 18px 14px' }}>
+          {isLive && (
+            <span style={{ position: 'absolute', top: 0, left: 0, width: 9, height: 9, borderRadius: '50%', background: '#fff', boxShadow: '0 0 0 3px rgba(255,255,255,.3)', animation: 'wbPulse 1.2s ease-in-out infinite' }} />
+          )}
+          {/* top badges */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 14 }}>
+            {isLive
+              ? <span style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#DCFCE7', color: '#15803D', fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 99 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E', animation: 'wbPulse 1.2s ease-in-out infinite' }} /> LIVE
+                </span>
+              : <span style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 99 }}>
+                  {sCfg.label}
+                </span>
+            }
+            <span style={{ background: w.isFree ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.22)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 99 }}>
+              {w.isFree ? 'FREE' : `₹${w.price}`}
+            </span>
           </div>
-          <div>
-            <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{w.presenter}</div>
-            <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>Presenter</div>
+
+          {/* presenter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', border: '2px solid rgba(255,255,255,0.45)', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: '#fff', flexShrink: 0 }}>
+              {initials(w.presenter)}
+            </div>
+            <div>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{w.presenter}</div>
+              <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 11 }}>Presenter</div>
+            </div>
           </div>
         </div>
       </div>
@@ -430,8 +443,8 @@ function WebinarCard({ w, idx, onRegister }) {
             </button>
           ) : (
             <button onClick={() => onRegister(w)}
-              style={{ width: '100%', padding: '11px 0', background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff', border: 'none', borderRadius: 11, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,70,229,.3)' }}>
-              Reserve My Seat →
+              style={alreadyRegistered.includes(w.id) ?{ width: '100%', padding: '11px 0', background: '#F3F4F6', color: '#9CA3AF', border: 'none', borderRadius: 11, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, cursor: 'not-allowed' }:{ width: '100%', padding: '11px 0', background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff', border: 'none', borderRadius: 11, fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,70,229,.3)' }}>
+             { alreadyRegistered.includes(w.id) ? "Already Registered" : "Book Now" }
             </button>
           )}
         </div>
@@ -444,7 +457,7 @@ function WebinarCard({ w, idx, onRegister }) {
    Main Page
 ══════════════════════════════════ */
 export default function Webinars() {
-  const { openAuth, user } = useAuth();
+  const { openAuth, user, setPendingWebinar, pendingWebinar, setReturnPath } = useAuth();
 
   const [webinars,     setWebinars]     = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -454,7 +467,28 @@ export default function Webinars() {
   const [totalPages,   setTotalPages]   = useState(1);
   const [hasMore,      setHasMore]      = useState(false);
   const [registerFor,  setRegisterFor]  = useState(null);
+  const [alreadyRegistered, setAlreadyRegistered] = useState([]);
 
+  const bookedwebinar = async (pendingWbn = null) => {
+    const id = getLoggedInUserId();
+    if (!id) return;
+    try {
+      const response = await httpService.get(`/webinar/my-registrations/${id}`, { token: true });
+      const registered = response?.registrations?.map(r => r.webinarId) || [];
+      setAlreadyRegistered(registered);
+      if (pendingWbn) {
+        if (registered.map(String).includes(String(pendingWbn.id))) {
+          toast.info('You are already registered for this webinar.');
+        } else {
+          setRegisterFor(pendingWbn);
+        }
+        setPendingWebinar(null);
+      }
+    } catch {}
+  };
+
+  useEffect(() => { bookedwebinar(); }, []); // eslint-disable-line
+  
   async function fetchWebinars(pg, status) {
     setLoading(true);
     setError(null);
@@ -493,9 +527,16 @@ export default function Webinars() {
     fetchWebinars(1, statusFilter);
   }, [statusFilter]); // eslint-disable-line
 
+  useEffect(() => {
+    if (user && pendingWebinar) {
+      bookedwebinar(pendingWebinar);
+    }
+  }, [user, pendingWebinar]); // eslint-disable-line
+
   const handleRegisterClick = (w) => {
     if (!user) {
-      toast.info('Please log in to register for this webinar.');
+      setPendingWebinar(w);
+      setReturnPath('/webinars');
       openAuth('login');
       return;
     }
@@ -572,7 +613,7 @@ export default function Webinars() {
               {/* ── grid ── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 20 }}>
                 {webinars.map((w, i) => (
-                  <WebinarCard key={w.id} w={w} idx={i} onRegister={handleRegisterClick} />
+                  <WebinarCard key={w.id} w={w} alreadyRegistered={alreadyRegistered} idx={i} onRegister={handleRegisterClick} />
                 ))}
               </div>
 

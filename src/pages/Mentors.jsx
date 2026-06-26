@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MENTORS } from '../data/mentors.js';
 import MentorCard from '../components/MentorCard.jsx';
 import { Chevron, Check, Search, Cap, Person, Brief, Doc } from '../components/Icons.jsx';
+import httpService from '../utils/apiService.tsx';
 
 const TYPES = [
   { id: 'all', label: 'All' },
@@ -18,11 +19,12 @@ const RATINGS = [
 ];
 
 export default function Mentors() {
+  const [Filterdata, setfilterData] = useState(0);
   const [type, setType] = useState('all');
   const [stream, setStream] = useState('all');
   const [org, setOrg] = useState('all');
   const [focus, setFocus] = useState('all');
-  const [price, setPrice] = useState(2000);
+  const [price, setPrice] = useState(Filterdata?.chargeRange?.max||2000);
   const [rating, setRating] = useState(0);
   const [sort, setSort] = useState('rating');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -30,15 +32,28 @@ export default function Mentors() {
 
   const reset = () => {
     setType('all'); setStream('all'); setOrg('all'); setFocus('all');
-    setPrice(2000); setRating(0); setSort('rating');
+    setPrice(Filterdata?.chargeRange?.max || 2000); setRating(0); setSort('rating');
   };
+
+  const fetchfilterdata = async() => {
+    try {
+      const res =await httpService.get('/mentorProfile/filter-options',{token:false});
+      setfilterData(res);
+  
+    }
+  catch (error) {
+    console.log(error);
+  }}
+  useEffect(()=>{
+fetchfilterdata()
+  },[])
 const mentordata =MENTORS()
   const list = useMemo(() => {
     const out = mentordata.filter((m) => {
       if (type !== 'all' && m.type !== type) return false;
       if (stream !== 'all' && m.stream !== stream) return false;
       if (org !== 'all' && m.org !== org) return false;
-      if (focus !== 'all' && m.focus.indexOf(focus) === -1) return false;
+      if (focus !== 'all' && m.focus?.indexOf(focus) === -1) return false;
       if (m.price > price) return false;
       if (m.rating < rating) return false;
       return true;
@@ -52,7 +67,7 @@ const mentordata =MENTORS()
     return out;
   }, [type, stream, org, focus, price, rating, sort,mentordata]);
 
-  const priceLabel = price === 0 ? 'Free' : price >= 2000 ? '₹2000' : '₹' + price;
+  const priceLabel = price === 0 ? 'Free' : price >= Filterdata?.chargeRange?.max ? `₹${Filterdata?.chargeRange?.max}` : `₹${price}`;
 
   return (
     <main id="top">
@@ -92,12 +107,14 @@ const mentordata =MENTORS()
                 <label>Stream / Field</label>
                 <select className="fsel" value={stream} onChange={(e) => setStream(e.target.value)}>
                   <option value="all">All Streams</option>
-                  <option value="cse">Computer Science / IT</option>
-                  <option value="ece">Electronics / E&amp;TC</option>
-                  <option value="mech">Mechanical / Civil</option>
-                  <option value="med">Medical (MBBS/BDS)</option>
-                  <option value="mba">MBA / Management</option>
-                  <option value="mca">MCA / BCA</option>
+                  {
+                    Filterdata?.streams?.length>0 &&
+                    Filterdata?.streams?.map((item,id)=>{
+                      return(
+                         <option key={id} value={item?.id}>{item?.name}</option>
+                      )
+                    })
+                  }
                 </select>
               </div>
 
@@ -105,12 +122,14 @@ const mentordata =MENTORS()
                 <label>University / College</label>
                 <select className="fsel" value={org} onChange={(e) => setOrg(e.target.value)}>
                   <option value="all">Any College / Company</option>
-                  <option value="IIT Bombay">IIT Bombay</option>
-                  <option value="COEP Pune">COEP Pune</option>
-                  <option value="VJTI Mumbai">VJTI Mumbai</option>
-                  <option value="AIIMS Delhi">AIIMS Delhi</option>
-                  <option value="IIM Indore">IIM Indore</option>
-                  <option value="VIT Vellore">VIT Vellore</option>
+                  {
+                    Filterdata?.universities?.length>0 &&
+                    Filterdata?.universities?.map((item,id)=>{
+                      return(
+                         <option key={id} value={item?.id}>{item?.name}</option>
+                      )
+                    })
+                  }
                 </select>
               </div>
 
@@ -118,19 +137,22 @@ const mentordata =MENTORS()
                 <label>I Need Help With</label>
                 <select className="fsel" value={focus} onChange={(e) => setFocus(e.target.value)}>
                   <option value="all">Anything</option>
-                  <option value="admissions">Admissions &amp; Counselling</option>
-                  <option value="campus">Campus &amp; Hostel Life</option>
-                  <option value="placement">Placements &amp; Prep</option>
-                  <option value="career">Career Growth</option>
-                  <option value="interview">Interview Prep</option>
+                  {
+                    Filterdata?.helpFor?.length>0 &&
+                    Filterdata?.helpFor?.map((item,id)=>{
+                      return(
+                         <option key={id} value={item}>{item}</option>
+                      )
+                    })
+                  }
                 </select>
               </div>
 
               <div className="fgroup">
                 <div className="range-row"><label style={{ margin: 0 }}>Max Price / Session</label><b>{priceLabel}</b></div>
-                <input type="range" min="0" max="2000" step="50" value={price} onChange={(e) => setPrice(parseInt(e.target.value))} />
+                <input type="range" min={Filterdata?.chargeRange?.min} max={Filterdata?.chargeRange?.max} step="50" value={price} onChange={(e) => setPrice(parseInt(e.target.value))} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 600, marginTop: 8 }}>
-                  <span>Free</span><span>₹2000</span>
+                  <span>{Filterdata?.chargeRange?.min}</span><span>₹{Filterdata?.chargeRange?.max}</span>
                 </div>
               </div>
 
@@ -156,7 +178,7 @@ const mentordata =MENTORS()
                 <span className="cf-off">Hide filters</span><span className="cf-on">Show filters</span>
               </button>
               <div className="rb-count"><b>{list.length}</b> mentors available</div>
-              <div className="rb-right">
+              {/* <div className="rb-right">
                 <span className="lbl">Sort</span>
                 <select className="mini-sel" value={sort} onChange={(e) => setSort(e.target.value)}>
                   <option value="rating">Top Rated</option>
@@ -164,7 +186,7 @@ const mentordata =MENTORS()
                   <option value="low">Price: Low to High</option>
                   <option value="high">Price: High to Low</option>
                 </select>
-              </div>
+              </div> */}
             </div>
 
             <div className="mentor-grid">

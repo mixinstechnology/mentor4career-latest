@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import M4CLogo from '../utils/images/M4C_logo_transparent.png';
 
 const KPI_PALETTE = [
   { accent: '#4F46E5', bg: 'rgba(79,70,229,0.08)' },
@@ -189,12 +190,7 @@ export default function DashboardShell({
         {/* ═══ SIDEBAR ═══ */}
         <aside className={`dash-side${sideOpen ? ' open' : ''}`}>
           <a href="/" className="brand" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <span style={{ display: 'flex', color: 'var(--indigo,#4F46E5)' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3L3 8l9 5 9-5-9-5z" fill="currentColor"/>
-                <path d="M6 11v4.5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5V11" stroke="currentColor" strokeWidth="1.7" fill="none"/>
-              </svg>
-            </span>
+            <img src={M4CLogo} alt="Mentor4Career" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
               Mentor<b style={{ color: 'var(--indigo,#4F46E5)' }}>4</b>Career
             </span>
