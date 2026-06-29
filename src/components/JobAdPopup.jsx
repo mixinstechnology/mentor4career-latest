@@ -63,6 +63,17 @@ const STYLES = `
 .jad-pill:hover { transform: translateY(-2px) scale(1.06); filter: brightness(1.1); }
 .jad-feat:hover { background: #f0f4ff !important; transform: translateX(3px); }
 .jad-cta:hover  { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(79,70,229,0.5) !important; }
+
+@media (max-width: 540px) {
+  .jad-card { flex-direction: column !important; max-height: 90dvh; overflow-y: auto; border-radius: 16px !important; }
+  .jad-left { width: 100% !important; flex-direction: row !important; align-items: center !important; padding: 14px 16px !important; gap: 14px !important; }
+  .jad-left-top { flex: 1; min-width: 0; }
+  .jad-left-top h2 { font-size: 17px !important; }
+  .jad-left-top p { display: none; }
+  .jad-stats { display: none !important; }
+  .jad-right { padding: 14px 16px !important; gap: 10px !important; }
+  .jad-feat-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+}
 `;
 
 export default function JobAdPopup({ onClose }) {
@@ -99,7 +110,7 @@ export default function JobAdPopup({ onClose }) {
           }}
         >
           {/* ── LEFT PANEL ── */}
-          <div style={{
+          <div className="jad-left" style={{
             width: 210, flexShrink: 0,
             background: 'linear-gradient(165deg,#1e1b4b 0%,#3730a3 50%,#6d28d9 100%)',
             padding: '24px 20px', display: 'flex', flexDirection: 'column',
@@ -109,7 +120,7 @@ export default function JobAdPopup({ onClose }) {
             <div style={{ position:'absolute', top:-30, right:-30, width:110, height:110, borderRadius:'50%', background:'rgba(255,255,255,0.06)' }} />
             <div style={{ position:'absolute', bottom:-20, left:-20, width:90,  height:90,  borderRadius:'50%', background:'rgba(255,255,255,0.04)' }} />
 
-            <div>
+            <div className="jad-left-top">
               {/* pulse badge */}
               <span
                 className="jad-badge"
@@ -141,7 +152,7 @@ export default function JobAdPopup({ onClose }) {
             </div>
 
             {/* stats */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18 }}>
+            <div className="jad-stats" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18 }}>
               {[
                 { v: '100+', l: 'Students placed' },
                 { v: '10+',  l: 'Tech skills'     },
@@ -159,7 +170,7 @@ export default function JobAdPopup({ onClose }) {
           </div>
 
           {/* ── RIGHT PANEL ── */}
-          <div style={{ flex: 1, background: '#fff', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="jad-right" style={{ flex: 1, background: '#fff', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* header row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: 'var(--ink)' }}>
@@ -183,7 +194,7 @@ export default function JobAdPopup({ onClose }) {
             </div>
 
             {/* features 2×2 grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+            <div className="jad-feat-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
               {FEATURES.map((f, i) => (
                 <div
                   key={i}
