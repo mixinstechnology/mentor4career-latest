@@ -365,6 +365,304 @@ function mapApiMentor(item) {
   };
 }
 
+/* ── Platform Reviews helpers (module-level so React identity is stable) ── */
+const REVIEW_STAR_PATH = 'M12 2l2.9 6 6.6.95-4.75 4.63 1.12 6.54L12 17.25l-5.87 3.07 1.12-6.54L2.5 8.95 9.1 8z';
+
+function ReviewStarRow({ rating, size = 15 }) {
+  return (
+    <div style={{ display: 'flex', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map(n => {
+        const full = rating >= n;
+        const half = !full && rating >= n - 0.5;
+        return (
+          <span key={n} style={{ position: 'relative', display: 'inline-block', width: size, height: size }}>
+            <svg viewBox="0 0 24 24" width={size} height={size} style={{ position: 'absolute', top: 0, left: 0 }}>
+              <path d={REVIEW_STAR_PATH} fill="#E2E8F0" />
+            </svg>
+            {(full || half) && (
+              <svg viewBox="0 0 24 24" width={size} height={size}
+                style={{ position: 'absolute', top: 0, left: 0, clipPath: half ? 'inset(0 50% 0 0)' : undefined }}>
+                <path d={REVIEW_STAR_PATH} fill="#F59E0B" />
+              </svg>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function fmtReviewDate(str) {
+  if (!str) return '';
+  try { return new Date(str).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch { return ''; }
+}
+
+function ReviewCard({ r, idx }) {
+  const initials = (r.reviewerName || r.name || 'S').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  return (
+    <div className="card testi-card" key={r.id || idx}>
+      <div className="testi-top">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ReviewStarRow rating={r.rating || 0} />
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: '#D97706' }}>
+            {Number(r.rating || 0).toFixed(1)}
+          </span>
+        </div>
+      </div>
+      <p style={{ display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        {r.comment}
+      </p>
+      <div className="testi-author">
+        <span className="ta-av" style={{ background: avatarColor }}>{initials}</span>
+        <div>
+          <div className="ta-n">{r.reviewerName || r.name || 'Student'}</div>
+          <div className="ta-r">{fmtReviewDate(r.createdAt)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const RATING_FILTERS = [
+  { key: 'all', label: 'All Ratings' },
+  { key: '5',   label: '5 ★' },
+  { key: '4',   label: '4 ★' },
+  { key: '3',   label: '3 ★ & below' },
+];
+
+const REVIEWS_PER_PAGE = 6;
+
+function ReviewsModal({ reviews, onClose }) {
+  const [filter, setFilter] = React.useState('all');
+  const [page,   setPage]   = React.useState(1);
+  const bodyRef = React.useRef(null);
+
+  const filtered = filter === 'all' ? reviews
+    : filter === '5' ? reviews.filter(r => Number(r.rating) >= 4.5)
+    : filter === '4' ? reviews.filter(r => Number(r.rating) >= 3.5 && Number(r.rating) < 4.5)
+    : reviews.filter(r => Number(r.rating) < 3.5);
+
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / REVIEWS_PER_PAGE));
+  const paginated   = filtered.slice((page - 1) * REVIEWS_PER_PAGE, page * REVIEWS_PER_PAGE);
+
+  const changeFilter = (key) => { setFilter(key); setPage(1); };
+  const goPage = (p) => {
+    setPage(p);
+    bodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const filterCount = (key) =>
+    key === 'all' ? reviews.length
+    : key === '5' ? reviews.filter(r => Number(r.rating) >= 4.5).length
+    : key === '4' ? reviews.filter(r => Number(r.rating) >= 3.5 && Number(r.rating) < 4.5).length
+    : reviews.filter(r => Number(r.rating) < 3.5).length;
+
+  const pageNums = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (page <= 4) return [1, 2, 3, 4, 5, '…', totalPages];
+    if (page >= totalPages - 3) return [1, '…', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, '…', page - 1, page, page + 1, '…', totalPages];
+  };
+
+  const btnBase = {
+    minWidth: 36, height: 36, borderRadius: 8, border: '1.5px solid #E2E8F0',
+    background: '#fff', cursor: 'pointer', display: 'inline-flex',
+    alignItems: 'center', justifyContent: 'center',
+    fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13,
+    color: 'var(--ink-2)', transition: 'all .15s', padding: '0 6px',
+  };
+
+  return (
+    <div
+      // onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9500,
+        background: 'rgba(10,14,40,0.65)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        padding: '24px 16px', overflowY: 'auto',
+      }}
+    >
+      <div style={{
+        background: '#fff', borderRadius: 22, width: '100%', maxWidth: 860,
+        boxShadow: '0 32px 80px rgba(0,0,0,0.22)',
+        display: 'flex', flexDirection: 'column', maxHeight: '92vh',
+      }}>
+        {/* header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 28px', borderBottom: '1px solid #E8EAF6',
+          background: 'linear-gradient(135deg,#F5F3FF,#EEF2FF)', flexShrink: 0,
+        }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--ink)' }}>
+              All Student Reviews
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2 }}>
+              {filtered.length} review{filtered.length !== 1 ? 's' : ''}
+              {filter !== 'all' ? ' matching this filter' : ' from verified students'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 36, height: 36, borderRadius: 10, border: '1.5px solid #E2E8F0',
+            background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--ink-2)', flexShrink: 0,
+          }}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* filter chips */}
+        <div style={{
+          display: 'flex', gap: 8, flexWrap: 'wrap',
+          padding: '14px 28px', borderBottom: '1px solid #F1F5F9',
+          background: '#FAFBFF', flexShrink: 0,
+        }}>
+          {RATING_FILTERS.map(f => (
+            <button key={f.key} onClick={() => changeFilter(f.key)} style={{
+              padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              border: filter === f.key ? '1.5px solid #4F46E5' : '1.5px solid #E2E8F0',
+              background: filter === f.key ? '#4F46E5' : '#fff',
+              color: filter === f.key ? '#fff' : 'var(--ink-2)',
+              transition: 'all .15s',
+            }}>
+              {f.label}
+              <span style={{
+                marginLeft: 6, fontSize: 11, fontWeight: 700,
+                background: filter === f.key ? 'rgba(255,255,255,.2)' : '#F1F5F9',
+                color: filter === f.key ? '#fff' : 'var(--ink-3)',
+                borderRadius: 99, padding: '1px 7px',
+              }}>
+                {filterCount(f.key)}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* scrollable reviews grid */}
+        <div ref={bodyRef} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }}>
+          {paginated.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)', fontSize: 14 }}>
+              No reviews for this rating filter.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+              {paginated.map((r, idx) => (
+                <ReviewCard key={r.id || idx} r={r} idx={(page - 1) * REVIEWS_PER_PAGE + idx} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* pagination footer */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 28px', borderTop: '1px solid #F1F5F9',
+            background: '#FAFBFF', flexShrink: 0, flexWrap: 'wrap', gap: 10,
+          }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>
+              Showing {(page - 1) * REVIEWS_PER_PAGE + 1}–{Math.min(page * REVIEWS_PER_PAGE, filtered.length)} of {filtered.length}
+            </span>
+
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {/* prev */}
+              <button
+                disabled={page === 1}
+                onClick={() => goPage(page - 1)}
+                style={{ ...btnBase, opacity: page === 1 ? .4 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+
+              {/* page numbers */}
+              {pageNums().map((n, i) =>
+                n === '…'
+                  ? <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--ink-3)', fontSize: 13 }}>…</span>
+                  : (
+                    <button key={n} onClick={() => goPage(n)} style={{
+                      ...btnBase,
+                      background: page === n ? '#4F46E5' : '#fff',
+                      border: page === n ? '1.5px solid #4F46E5' : '1.5px solid #E2E8F0',
+                      color: page === n ? '#fff' : 'var(--ink-2)',
+                    }}>
+                      {n}
+                    </button>
+                  )
+              )}
+
+              {/* next */}
+              <button
+                disabled={page === totalPages}
+                onClick={() => goPage(page + 1)}
+                style={{ ...btnBase, opacity: page === totalPages ? .4 : 1, cursor: page === totalPages ? 'not-allowed' : 'pointer' }}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlatformReviewsSection({ reviews }) {
+  const [showModal, setShowModal] = React.useState(false);
+  const avg = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length;
+  const top5 = [...reviews].sort((a, b) => Number(b.rating) - Number(a.rating)).slice(0, 5);
+
+  return (
+    <section className="section-pad" id="platform-reviews">
+      <div className="wrap">
+        <div className="section-head center">
+          <span className="eyebrow"><span className="dot" /> Student Reviews</span>
+          <h2 className="section-title">What students say about <span className="grad-text">Mentor4Career</span></h2>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginTop: 14, background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 99, padding: '8px 18px' }}>
+            <ReviewStarRow rating={avg} size={17} />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: '#D97706' }}>{avg.toFixed(1)}</span>
+            <span style={{ fontSize: 13, color: '#92400E', fontWeight: 600 }}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 20, marginTop: 36 }}>
+          {top5.map((r, idx) => <ReviewCard key={r.id || idx} r={r} idx={idx} />)}
+        </div>
+
+        {reviews.length > 5 && (
+          <div style={{ textAlign: 'center', marginTop: 36 }}>
+            <button onClick={() => setShowModal(true)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 9,
+              padding: '13px 30px', borderRadius: 12,
+              background: 'var(--grad)', color: '#fff',
+              border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
+              boxShadow: 'var(--shadow-brand)', transition: 'transform .15s, box-shadow .15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = ''}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l2.5 5 5.5.8-4 3.9 1 5.5L12 16l-5 2.6 1-5.5-4-3.9 5.5-.8L12 2z"/>
+              </svg>
+              View All {reviews.length} Reviews
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showModal && <ReviewsModal reviews={reviews} onClose={() => setShowModal(false)} />}
+    </section>
+  );
+}
+
 export default function Home() {
   const { openAuth, user, setPendingWebinar, pendingWebinar, setReturnPath } = useAuth();
   const [exam, setExam] = useState('JEE');
@@ -382,6 +680,9 @@ export default function Home() {
   const [webinars,      setWebinars]      = useState([]);
   const [registeredIds, setRegisteredIds] = useState(new Set());
   const [registerFor,   setRegisterFor]   = useState(null);
+
+  /* ── platform reviews ── */
+  const [platformReviews, setPlatformReviews] = useState([]);
 
   useEffect(() => {
     if (!user || !pendingWebinar) return;
@@ -457,6 +758,21 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
+  const fetchReviews = async () => {
+    try {
+      const res = await httpService.get('/platformReview', {
+        params: { page: 1, limit: 50, reviewerType: 'student' },
+        token: true,
+      });
+      const rows =
+        Array.isArray(res?.rows)       ? res.rows       :
+        Array.isArray(res?.data?.rows) ? res.data.rows  :
+        Array.isArray(res?.data)       ? res.data        :
+        Array.isArray(res)             ? res              : [];
+      setPlatformReviews(rows.filter(r => r?.comment && r?.isActive !== false));
+    } catch {}
+  };
+  useEffect(() => { fetchReviews(); }, []);
   /* load already-registered webinar IDs — fetch on mount and after login */
   const fetchRegisteredIds = useCallback(async () => {
     const uid = user?.id ?? user?.userId ?? user?._id ?? getLoggedInUserId();
@@ -986,8 +1302,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* LIVE WEBINARS */}
-        {webinars.length > 0 && (
+        {/* LIVE WEBINARS ,Not Representing*/}
+        {[].length > 0 && (
           <section className="section-pad" id="webinars">
             <div className="wrap">
               <div className="sh-row reveal">
@@ -1060,37 +1376,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TESTIMONIALS */}
-        <section className="section-pad" id="stories">
-          <div className="wrap">
-            <div className="section-head center reveal">
-              <span className="eyebrow"><span className="dot" /> Student Success Stories</span>
-              <h2 className="section-title">Real students. <span className="grad-text">Real results.</span></h2>
-            </div>
-            <div className="testi-grid">
-              {[
-                { badge: 'Admitted', text: 'The AI predictor showed me exactly which colleges I had a real shot at. I found the right engineering college and avoided a wrong admission decision.', av: 'RD', col: 'linear-gradient(135deg,#4F46E5,#3B82F6)', n: 'Rohan Deshmukh', r: 'B.Tech CSE · COEP Pune' },
-                { badge: 'Hired', text: 'Mock interviews here helped me crack my first software developer job. The feedback after each round was honest and exactly what I needed to improve.', av: 'AT', col: 'linear-gradient(135deg,#0FA968,#06B6D4)', n: 'Aditi Talreja', r: 'SDE-1 · Razorpay' },
-                { badge: 'Admitted', text: 'My mentor gave me complete clarity about MBA admissions and career growth. I joined my dream B-school this year with full confidence.', av: 'FM', col: 'linear-gradient(135deg,#7C5CF7,#EC4899)', n: 'Faizan Mirza', r: 'MBA · IIM Indore' }
-              ].map((t, i) => (
-                <div className="card testi-card reveal" key={i}>
-                  <div className="testi-top">
-                    <div className="stars" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      {[...Array(5)].map((_, si) => (
-                        <svg key={si} viewBox="0 0 24 24" width="15" height="15" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2l2.9 6 6.6.95-4.75 4.63 1.12 6.54L12 17.25l-5.87 3.07 1.12-6.54L2.5 8.95 9.1 8z"/>
-                        </svg>
-                      ))}
-                    </div>
-                    <span className="badge-hired"><Check width="24" height="24" /> {t.badge}</span>
-                  </div>
-                  <p>{t.text}</p>
-                  <div className="testi-author"><span className="ta-av" style={{ background: t.col }}>{t.av}</span><div><div className="ta-n">{t.n}</div><div className="ta-r">{t.r}</div></div></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* STUDENT PLATFORM REVIEWS */}
+        {platformReviews.length > 0 && <PlatformReviewsSection reviews={platformReviews} />}
 
         {/* FINAL CTA */}
         <section className="section-pad" style={{ paddingTop: 0 }}>
@@ -1101,7 +1388,7 @@ export default function Home() {
               <div className="cta-btns">
                 <button className="btn btn-white btn-lg" onClick={() => openAuth('signup')}>Register Free</button>
                 <Link to="/mentors" className="btn btn-clear btn-lg">Find a Mentor</Link>
-                <Link to="/predictor" className="btn btn-clear btn-lg">Predict My College</Link>
+                {/* <Link to="/predictor" className="btn btn-clear btn-lg">Predict My College</Link> */}
               </div>
             </div>
           </div>

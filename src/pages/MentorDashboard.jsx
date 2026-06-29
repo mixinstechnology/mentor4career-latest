@@ -5,6 +5,7 @@ import DashboardShell from '../components/DashboardShell.jsx';
 import { Calendar, Clock, Card, Check, Person } from '../components/Icons.jsx';
 import httpService from '../utils/apiService.tsx';
 import SupportTicketsView from '../components/SupportTicketsView.jsx';
+import PlatformReviewView from '../components/PlatformReviewView.jsx';
 
 /* fire-and-forget mail helper — non-fatal */
 async function sendMail(to, subject, html) {
@@ -301,6 +302,11 @@ function keyToApiDate(key) {
 }
 
 /* ── nav ── */
+const StarNavIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" width={18} height={18}>
+    <path d="M12 3l2.5 5 5.5.8-4 3.9 1 5.5L12 16l-5 2.6 1-5.5-4-3.9 5.5-.8L12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+  </svg>
+);
 const TicketIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" width={18} height={18}>
     <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -335,6 +341,7 @@ const NAV = [
   { id: 'payout',      label: 'Payout',           icon: <PayoutIcon /> },
   { divider: true },
   { id: 'support',     label: 'Support Tickets',  icon: <TicketIcon /> },
+  { id: 'review',      label: 'Platform Review',   icon: <StarNavIcon /> },
 ];
 
 const STATUS_LABEL = { upcoming: 'Upcoming', completed: 'Completed', cancelled: 'Cancelled' };
@@ -2713,6 +2720,14 @@ export default function MentorDashboard() {
               email: myProfile?.email        || '',
               phone: myProfile?.contactNumber || '',
             }}
+          />
+        )}
+
+        {/* ── Platform Review ── */}
+        {section === 'review' && (
+          <PlatformReviewView
+            userId={myProfile?.authUserId}
+            reviewerType="mentor"
           />
         )}
       </DashboardShell>

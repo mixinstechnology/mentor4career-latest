@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import httpService from '../utils/apiService.tsx';
 
+async function sendMail(to, subject, html) {
+  try {
+    const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
+    if (!recipients.length) return;
+    await httpService.post('/contactUs/send-mail', {
+      data: { to: recipients, subject, html },
+      token: true,
+    });
+  } catch { /* non-fatal */ }
+}
+
 /* ── config ── */
 const STATUS_CFG = {
   active:        { label: 'Open',        bg: '#EEF2FF', col: '#4F46E5', border: '#4F46E5', dot: '#4F46E5' },
@@ -86,7 +97,7 @@ export default function SupportTicketsView({ userId, userProfile = {} }) {
     }
     setSubmitting(true);
     try {
-      await httpService.post('/supportTicket', {
+      const res = await httpService.post('/supportTicket', {
         data: {
           name:        userProfile.name  || '',
           email:       userProfile.email || '',
@@ -98,6 +109,27 @@ export default function SupportTicketsView({ userId, userProfile = {} }) {
         token: true,
       });
       toast.success('Ticket raised! Our support team will respond within 24 hours.');
+
+      const ticketCode = res?.data?.ticketCode || res?.data?.ticketId || res?.data?.id || res?.ticketCode || res?.ticketId || '';
+      const codeDisplay = ticketCode ? `#${ticketCode}` : '';
+
+      sendMail(
+        [userProfile.email],
+        `Support Ticket Raised${codeDisplay ? ` — ${codeDisplay}` : ''} | Mentor4Career`,
+        `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1E293B">
+          <h2 style="color:#4F46E5;margin-bottom:4px">We've received your support request</h2>
+          <p style="color:#64748B;margin-top:0">Hi ${userProfile.name || 'there'},</p>
+          <p>Your support ticket has been raised successfully. Our team will review it and get back to you within <b>24 hours</b>.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0;background:#F8FAFF;border-radius:10px;overflow:hidden">
+            ${codeDisplay ? `<tr><td style="padding:10px 14px;color:#6B7280;width:130px;border-bottom:1px solid #E2E8F0">Ticket ID</td><td style="padding:10px 14px;font-weight:700;border-bottom:1px solid #E2E8F0">${codeDisplay}</td></tr>` : ''}
+            <tr><td style="padding:10px 14px;color:#6B7280;border-bottom:1px solid #E2E8F0">Issue Type</td><td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #E2E8F0">${form.title}</td></tr>
+            <tr><td style="padding:10px 14px;color:#6B7280;border-bottom:1px solid #E2E8F0">Priority</td><td style="padding:10px 14px;font-weight:600;text-transform:capitalize;border-bottom:1px solid #E2E8F0">${form.priority}</td></tr>
+            <tr><td style="padding:10px 14px;color:#6B7280;vertical-align:top">Description</td><td style="padding:10px 14px">${form.description}</td></tr>
+          </table>
+          <p style="color:#6B7280;font-size:13px">You will be notified by email when our support team replies. Thank you for reaching out to Mentor4Career!</p>
+        </div>`
+      );
+
       setForm(EMPTY_FORM);
       setShowForm(false);
       loadTickets(1, true);

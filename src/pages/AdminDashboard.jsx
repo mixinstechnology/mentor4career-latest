@@ -2333,6 +2333,17 @@ function FeedbackView() {
 }
 
 /* ─── Admin Support Tickets ─── */
+async function sendMail(to, subject, html) {
+  try {
+    const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
+    if (!recipients.length) return;
+    await httpService.post('/contactUs/send-mail', {
+      data: { to: recipients, subject, html },
+      token: true,
+    });
+  } catch { /* non-fatal */ }
+}
+
 const TICKET_STATUS_CFG = {
   active:        { label: 'Open',        bg: '#EEF2FF', col: '#4F46E5', border: '#4F46E5', dot: '#4F46E5' },
   'in-progress': { label: 'In Progress', bg: '#FEF3DA', col: '#B45309', border: '#F59E0B', dot: '#F59E0B' },
@@ -2433,6 +2444,28 @@ function AdminTicketsView() {
         token: true,
       });
       toast.success('Comment posted!');
+
+      const ticketCode   = commentTicket.ticketCode || String(commentTicket.id || commentTicket._id || '').slice(-5).padStart(5, '0');
+      const statusLabel  = TICKET_STATUS_CFG[commentForm.status]?.label || commentForm.status;
+      const userEmail    = commentTicket.email;
+      const userName     = commentTicket.name || 'there';
+
+      sendMail(
+        [userEmail],
+        `Reply on Your Support Ticket #${ticketCode} | Mentor4Career`,
+        `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1E293B">
+          <h2 style="color:#4F46E5;margin-bottom:4px">Our support team has replied</h2>
+          <p style="color:#64748B;margin-top:0">Hi ${userName},</p>
+          <p>Your support ticket <b>#${ticketCode}</b> has received a new reply from our team.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0;background:#F8FAFF;border-radius:10px;overflow:hidden">
+            <tr><td style="padding:10px 14px;color:#6B7280;width:130px;border-bottom:1px solid #E2E8F0">Ticket</td><td style="padding:10px 14px;font-weight:700;border-bottom:1px solid #E2E8F0">#${ticketCode} — ${commentTicket.title || ''}</td></tr>
+            <tr><td style="padding:10px 14px;color:#6B7280;border-bottom:1px solid #E2E8F0">Status</td><td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #E2E8F0">${statusLabel}</td></tr>
+            <tr><td style="padding:10px 14px;color:#6B7280;vertical-align:top">Reply</td><td style="padding:10px 14px;line-height:1.6">${commentForm.comment}</td></tr>
+          </table>
+          <p style="color:#6B7280;font-size:13px">Log in to your dashboard to view the full conversation and respond. Thank you for contacting Mentor4Career support!</p>
+        </div>`
+      );
+
       setCommentTicket(null);
       loadTickets(1, true);
     } catch {}
